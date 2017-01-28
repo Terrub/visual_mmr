@@ -67,7 +67,17 @@ var Player = (function define_Player() {
             var minV = lower_bound;
             var maxV = upper_bound;
 
-            var result = (Math.random() * (maxV - minV)) + minV;
+            var i = 0;
+            var n = 6;
+            var result = 0;
+
+            for (i; i < n; i += 1) {
+
+                result += (Math.random() * (maxV - minV)) + minV;
+
+            }
+
+            result /= n;
 
             return result;
 
