@@ -94,7 +94,7 @@ function createPlayerGraphs(p_num_players) {
 
     for ( i; i < n; i += 1 ) {
 
-        playerGraphs.push(createPlayerGraph(400, 150, 50));
+        playerGraphs.push(createPlayerGraph(600, 800, 200));
 
     }
 
@@ -241,9 +241,9 @@ function init() {
     player_graphs = createPlayerGraphs(5);
 
     ren_obs = [];
-    ren_obs.push(framerate);
     ren_obs.push(start_btn);
     ren_obs.push(stop_btn);
+    ren_obs.push(framerate);
     ren_obs = ren_obs.concat(player_graphs);
 
     hookMousePositions();
@@ -332,7 +332,12 @@ function draw() {
 
         ren_ob.draw(ren_ob);
 
-        concurrent_y += ren_ob.h + 10;
+        if (i < 2) {
+            concurrent_x += ren_ob.w + 10;
+        }
+        else {
+            concurrent_x = 10;
+        }
 
     }
 

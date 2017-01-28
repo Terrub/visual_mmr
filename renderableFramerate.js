@@ -177,7 +177,7 @@ var RenderableFramerate = (function(){
 
             gl.font = font;
 
-            self.w = font_size + gl.measureText(framerate);
+            self.w = font_size + gl.measureText(framerate).width;
             self.h = font_size + int_padding;
 
         }

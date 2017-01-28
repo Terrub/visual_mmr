@@ -186,7 +186,7 @@ var CertaintyGraph = (function define_CertaintyGraph() {
             self.x = instance.x;
             self.y = instance.y;
 
-            drawBackground(self);
+            // drawBackground(self);
             drawAxisX(self);
             drawAxisY(self);
             calcValues(self);
