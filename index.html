@@ -11,6 +11,7 @@
     <script src="certaintyGraph.js"></script>
     <script src="renderObject.js"></script>
     <script src="renderableButton.js"></script>
+    <script src="renderableFramerate.js"></script>
 
 <style type="text/css">
 
@@ -30,6 +31,7 @@ var mouseX;
 var mouseY;
 
 var ren_obs;
+var framerate;
 var start_btn;
 var stop_btn;
 var player_graphs;
@@ -233,11 +235,13 @@ function init() {
 
     display = getDisplay(gl);
 
+    framerate = RenderableFramerate.create(gl);
     start_btn = RenderableButton.create(gl, "START");
     stop_btn = RenderableButton.create(gl, "STOP");
     player_graphs = createPlayerGraphs(5);
 
     ren_obs = [];
+    ren_obs.push(framerate);
     ren_obs.push(start_btn);
     ren_obs.push(stop_btn);
     ren_obs = ren_obs.concat(player_graphs);
