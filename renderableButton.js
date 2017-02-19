@@ -14,7 +14,7 @@ var RenderableButton = (function(){
         var font_size_unit;
         var font_family;
 
-        var int_padding;
+        var internal_padding;
         var border_size;
 
         if (isUndefined(p_gl)) {
@@ -29,7 +29,7 @@ var RenderableButton = (function(){
 
         gl = p_gl;
 
-        int_padding = 3;
+        internal_padding = 3;
         border_size = 1;
 
         self.getLabel = function () {
@@ -167,29 +167,30 @@ var RenderableButton = (function(){
 
         self.measure = function (self) {
 
-            gl.font = font;
-
-            self.w = font_size + gl.measureText(label).width;
-            self.h = font_size + int_padding + border_size;
+            self.w = font_size + gl.measureTextWidth(label, font);
+            self.h = font_size + internal_padding + border_size;
 
         }
 
         self.draw = function (self) {
 
-            gl.font = font;
-            gl.fillStyle = color;
-
-            gl.fillRect(
+            gl.drawRect(
                 self.x, self.y,
-                self.w, self.h
+                self.w, self.h,
+                color
             );
+
             gl.clearRect(
                 self.x + border_size, self.y + border_size,
                 self.w - border_size * 2, self.h - border_size * 2
             );
-            gl.fillText(
+
+            gl.text(
+                self.x + font_size / 2,
+                self.y + font_size - border_size,
                 label,
-                self.x + font_size / 2, self.y + font_size - border_size
+                color,
+                font
             );
 
         }
@@ -197,11 +198,6 @@ var RenderableButton = (function(){
         if (isDefined(p_label)) {
 
             self.setLabel(p_label);
-
-        }
-        else {
-
-            self.setLabel("PRESS ME");
 
         }
 

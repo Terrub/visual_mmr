@@ -1,45 +1,70 @@
-function getDisplay(glib) {
+function createDisplayFromCanvas(canvas) {
 
-    var display;
-    var canvas;
+    var self;
+    var glib;
 
-    display = {};
-    canvas = glib.canvas;
+    self = {};
+    glib = canvas.getContext("2d");
 
-    display.drawPixel = function (x, y, color) {
+    self.drawPixel = function (x, y, color) {
 
         glib.fillStyle = color;
         glib.fillRect(x, y, 1, 1);
 
     }
 
-    display.drawRect = function (x, y, w, h, color) {
+    self.drawRect = function (x, y, w, h, color) {
 
         glib.fillStyle = color;
         glib.fillRect(x, y, w, h);
 
     }
 
-    display.clearRect = function (x, y, w, h) {
+    self.clearRect = function (x, y, w, h) {
 
         glib.clearRect(x, y, w, h);
 
     }
 
-    display.fill = function (color) {
+    self.fill = function (color) {
 
         glib.fillStyle = color;
         glib.fillRect(0, 0, canvas.width, canvas.height);
 
     }
 
-    display.clear = function () {
+    self.clear = function () {
 
         glib.clearRect(0, 0, canvas.width, canvas.height);
 
     }
 
-    display.text = function (x, y, text, color, font) {
+    self.measureTextWidth = function (text, font) {
+
+        var old_font;
+        var result;
+
+        if (isString(font) && glib.font !== font) {
+
+            old_font = glib.font;
+
+            glib.font = font;
+
+            result = gl.measureText(text).width;
+
+            glib.font = old_font;
+
+        } else {
+
+            result = gl.measureText(text).width;
+
+        }
+
+        return result
+
+    }
+
+    self.text = function (x, y, text, color, font) {
 
         if (isDefined(color)) {
 
@@ -57,6 +82,6 @@ function getDisplay(glib) {
 
     }
 
-    return display;
+    return self;
 
 }

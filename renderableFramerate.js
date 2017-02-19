@@ -177,19 +177,19 @@ var RenderableFramerate = (function(){
 
             gl.font = font;
 
-            self.w = font_size + gl.measureText(framerate).width;
+            self.w = font_size + gl.measureTextWidth(framerate);
             self.h = font_size + int_padding;
 
         }
 
         self.draw = function (self) {
 
-            gl.font = font;
-            gl.fillStyle = color;
-
-            gl.fillText(
+            gl.text(
+                self.x + font_size / 2,
+                self.y + font_size,
                 framerate,
-                self.x + font_size / 2, self.y + font_size
+                color,
+                font
             );
 
             setFrameDrawTime(getTime());

@@ -128,8 +128,13 @@ function hookMousePositions() {
 
         mouse_hook = function(event) {
 
-            oldMouseMove(event);
+            var result;
+
+            result = oldMouseMove(event);
+
             newMouseMove(event);
+
+            return result;
 
         }
 
@@ -233,11 +238,11 @@ function init() {
 
     gl = canvas.getContext("2d");
 
-    display = getDisplay(gl);
+    display = createDisplayFromCanvas(canvas);
 
-    framerate = RenderableFramerate.create(gl);
-    start_btn = RenderableButton.create(gl, "START");
-    stop_btn = RenderableButton.create(gl, "STOP");
+    framerate = RenderableFramerate.create(display);
+    start_btn = RenderableButton.create(display, "START");
+    stop_btn = RenderableButton.create(display, "STOP");
     player_graphs = createPlayerGraphs(5);
 
     ren_obs = [];
@@ -291,8 +296,9 @@ function draw() {
 
     }
 
-    // Allow all objects to update themselves. Top-down approach
     n = ren_obs.length;
+
+    // Allow all objects to update themselves. Top-down approach
     for (i = 0; i < n; i += 1) {
 
         ren_ob = ren_obs[i];
@@ -332,12 +338,17 @@ function draw() {
 
         ren_ob.draw(ren_ob);
 
-        if (i < 2) {
-            concurrent_x += ren_ob.w + 10;
-        }
-        else {
-            concurrent_x = 10;
-        }
+    //*
+
+        //@HACK: I needed the first 2 buttons to go horizontal for now!
+        if (i < 2) { concurrent_x += ren_ob.w + 10; }
+        else { concurrent_x = 10; }
+
+    /*/
+
+        concurrent_x = 10;
+
+    //*/
 
     }
 
@@ -346,6 +357,14 @@ function draw() {
 function renderFrame() {
 
     checkForNextRound();
+
+    if (round > old_round) {
+
+        old_round = round;
+
+        getNewPlayerData();
+
+    }
 
     clear();
 
