@@ -200,18 +200,18 @@ function hookMouseClick() {
 
 }
 
-function getNewPlayerData() {
+function addNewPlayerData(p_player_graphs) {
 
     var player_graph;
     var player;
     var new_score;
 
     var i = 0;
-    var n = player_graphs.length;
+    var n = p_player_graphs.length;
 
-    for ( i; i < n; i += 1 ) {
+    for (i; i < n; i += 1) {
 
-        player_graph = player_graphs[i];
+        player_graph = p_player_graphs[i];
 
         new_score = player_graph.player.getScore();
 
@@ -352,7 +352,7 @@ function renderFrame() {
 
         old_round = round;
 
-        getNewPlayerData();
+        addNewPlayerData(player_graphs);
 
     }
 
