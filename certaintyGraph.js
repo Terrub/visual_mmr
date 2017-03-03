@@ -154,11 +154,17 @@ var CertaintyGraph = (function define_CertaintyGraph() {
 
     function getRandomColor() {
 
+        // return formatise(
+        //     "rgba({@1:i},{@2:i},{@3:i},0.8)",
+        //     generateRandomNumber(0, 255),
+        //     generateRandomNumber(0, 255),
+        //     generateRandomNumber(0, 255)
+        // );
+
         return formatise(
-            "rgba({@1:i},{@2:i},{@3:i},1)",
-            generateRandomNumber(0, 255),
-            generateRandomNumber(0, 255),
-            generateRandomNumber(0, 255)
+            "hsla({@1:i},100%,{@2:i}%,0.8)",
+            generateRandomNumber(0, 360),
+            generateRandomNumber(40, 70)
         );
 
     }
