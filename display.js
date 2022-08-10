@@ -1,9 +1,15 @@
 function createDisplayFromCanvas(canvas) {
-  var self;
-  var glib;
+  const self = {};
+  const glib = canvas.getContext("2d");
 
-  self = {};
-  glib = canvas.getContext("2d");
+  self.drawLine = (x1, y1, x2, y2, color, lineWidth = 1) => {
+    glib.lineWidth = lineWidth;
+    glib.strokeStyle = color;
+    glib.beginPath();
+    glib.moveTo(x1, y1);
+    glib.lineTo(x2, y2);
+    glib.stroke();
+  };
 
   self.drawPixel = function (x, y, color) {
     glib.fillStyle = color;
@@ -15,10 +21,13 @@ function createDisplayFromCanvas(canvas) {
     glib.fillRect(x, y, w, h);
   };
 
-  self.strokeRect = function (x, y, w, h, strokeWidth, color) {
+  self.strokeRect = function (x, y, w, h, color, strokeWidth = 1) {
+    glib.beginPath();
     glib.lineWidth = strokeWidth;
     glib.strokeStyle = color;
-    glib.strokeRect(x, y, w, h);
+    // glib.strokeRect(x, y, w, h);
+    glib.rect(x, y, w, h);
+    glib.stroke();
   };
 
   self.clearRect = function (x, y, w, h) {

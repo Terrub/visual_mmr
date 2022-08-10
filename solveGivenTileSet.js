@@ -7,6 +7,20 @@ function createGivenTileSetSolver(drawPile, grid) {
   let position;
   let tile;
 
+  // Order drawPile for comedic effect;
+  drawPile.sort((a, b) => {
+    // NUM EXITS - Order by number of exits per tile. Lowest exits at bottom of pile
+    // return getNumberOfExitsForTile(a) - getNumberOfExitsForTile(b);
+    // RANDOM - Order randomly
+    return 1 - Math.round(Math.random()) * 2;
+    // GIVEN ORDER - Keep order as defined in bandidaTiles.js
+    // return 0;
+  });
+
+  function getNumberOfExitsForTile(tile) {
+    return tile.definition.split("1").length - 1;
+  }
+
   function drawTiles(hand, n = 3) {
     while (hand.length < n) {
       const tile = tileSet.pop();
