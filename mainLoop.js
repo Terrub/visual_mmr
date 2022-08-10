@@ -1,53 +1,59 @@
 function mainLoop(func_frameRender) {
+  let proto_mainLoop = {};
+  let animating = false;
 
-    var proto_mainLoop;
-    var animating = false;
-
-    function isAnimating() {
-
-        return (animating === true);
-
+  proto_mainLoop.start = () => {
+    if (isAnimating()) {
+      return;
     }
 
-    function setIsAnimating(value) {
-        animating = value;
+    setIsAnimating(true);
+    tic();
+
+    report("Main loop started");
+  };
+
+  proto_mainLoop.stop = () => {
+    if (!isAnimating()) {
+      return;
     }
 
-    function tic() {
+    setIsAnimating(false);
 
-        if ( ! isAnimating()) { return; }
+    report("Main loop stopped");
+  };
 
-        renderFrame();
-        window.requestAnimationFrame(tic);
+  proto_mainLoop.next = () => {
+    window.requestAnimationFrame(func_frameRender);
+  }
 
+  function isAnimating() {
+    return animating === true;
+  }
+
+  function setIsAnimating(value) {
+    animating = value;
+  }
+
+  function tic() {
+    if (!isAnimating()) {
+      return;
     }
 
-    function proto_start() {
+    func_frameRender();
+    window.requestAnimationFrame(tic);
+  }
 
-        if (isAnimating()) { return; }
-
-        setIsAnimating(true);
-        tic();
-
-        report("Main loop started");
-
+  function proto_start() {
+    if (isAnimating()) {
+      return;
     }
 
-    function proto_stop() {
+    setIsAnimating(true);
+    tic();
 
-        if ( ! isAnimating()) { return ; }
+    report("Main loop started");
+  }
 
-        setIsAnimating(false);
-
-        report("Main loop stopped");
-
-    }
-
-    proto_mainLoop = {
-        start: proto_start,
-        stop: proto_stop
-    };
-
-    return proto_mainLoop;
-
+  return proto_mainLoop;
 }

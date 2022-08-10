@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Bandida tiles</title>
+
+    <script src="utils.js"></script>
+    <script src="display.js"></script>
+    <script src="mainLoop.js"></script>
+    <script src="bandidaTiles.js"></script>
+    <script src="solveGivenTileSet.js"></script>
+
+    <style type="text/css">
+      html {
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        color: white;
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        /* background-color: #161616; */
+        position: absolute;
+        z-index: -1;
+      }
+
+      button,
+      input {
+        width: 5em;
+        height: 2em;
+        border-radius: 0.5em;
+        padding: 0.35em;
+        text-align: center;
+        opacity: 50%;
+      }
+
+      div.scoreBoard {
+        position: fixed;
+      }
+
+      label {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      span {
+        color: rgb(120, 200, 0);
+      }
+
+      input {
+        padding: 0;
+      }
+
+      input:invalid {
+        border: 1px solid red;
+      }
+
+      input:valid {
+        border: 1px solid green;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      let boardCanvas;
+      let boardDisplay;
+
+      let placedTilesCanvas;
+      let placedTilesDisplay;
+
+      let handCanvas;
+      let handDisplay;
+
+      let drawPileCanvas;
+      let drawPileDisplay;
+
+      let grid;
+      let loop;
+      let tileSet;
+      let scale = 10;
+      let boardWidth = 55;
+      let boardHeight = 30;
+
+      function createCanvas(width, height) {
+        const canvas = document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        return canvas;
+      }
+
+      function displayGameOver() {
+        const gameStateTextElem = document.getElementById("gameStateText");
+        gameStateTextElem.style.setProperty("color", "red");
+        gameStateTextElem.innerText = "GAME OVER!";
+      }
+
+      function displayGameWon() {
+        const gameStateTextElem = document.getElementById("gameStateText");
+        gameStateTextElem.style.setProperty("color", "green");
+        gameStateTextElem.innerText = "GAME WON";
+      }
+
+      function updateScoreBoard(value) {
+        document.getElementById("boardValue").innerText = value;
+      }
+
+      function updateNumIterations(value) {
+        document.getElementById("numIterations").innerText = value;
+      }
+
+      function renderTile(display, tile, tileX, tileY, rotation, scale) {
+        // TODO: Pass display as dependancy
+        // TODO: Leave tile coords up to caller
+
+        /*
+                  We could have a tile display marked as:
+
+                  # . #      # . # # # #
+                  # . .  or  . . . . . .
+                  # . #      # # # # . #
+                  # . #
+                  . . #
+                  # . #
+
+                  So We have 18 cells of 3 x 6 with either empty or filled cells
+                  and we have a rotation possible
+
+                  we'd also have to take into account a minor margin so we can distinguish cells from one tile
+                  to the tile next to it.
+              */
+        const x_lim = 2;
+        const y_lim = 5;
+
+        for (const cell of tile.cells) {
+          let x = 0;
+          let y = 0;
+          let w = scale;
+          let h = scale;
+
+          if (rotation === 0) {
+            x = cell.x * scale + tileX;
+            y = cell.y * scale + tileY;
+          } else if (rotation === 1) {
+            x = (y_lim - cell.y) * scale + tileX;
+            y = cell.x * scale + tileY;
+          } else if (rotation === 2) {
+            x = (x_lim - cell.x) * scale + tileX;
+            y = (y_lim - cell.y) * scale + tileY;
+          } else if (rotation === 3) {
+            x = cell.y * scale + tileX;
+            y = (x_lim - cell.x) * scale + tileY;
+          }
+
+          display.drawRect(x, y, w, h, cell.type);
+        }
+
+        display.strokeRect(
+          tileX + 1,
+          tileY + 1,
+          (3 + (rotation % 2) * 3) * scale - 2,
+          (3 + ((rotation + 1) % 2) * 3) * scale - 2,
+          2,
+          "black"
+        );
+      }
+
+      function renderBoard() {
+        boardDisplay.drawRect(
+          0,
+          0,
+          boardWidth * 3 * scale,
+          boardHeight * 3 * scale,
+          "#222"
+        );
+      }
+
+      function renderPlacedTiles(tiles) {
+        placedTilesDisplay.clear();
+
+        for (const tile of tiles) {
+          if (isDefined(tile)) {
+            const tileX = tile.x * 3 * scale;
+            const tileY = tile.y * 3 * scale;
+            renderTile(
+              placedTilesDisplay,
+              tile,
+              tileX,
+              tileY,
+              tile.rotation,
+              scale
+            );
+          }
+        }
+      }
+
+      function renderDrawPile(tiles) {
+        // TODO: have a separate canvas for this
+        // just draw the tiles in horizontal position
+        // start at the bottom and work up, separating each tile with a few pixels
+        // top of the drawpile is last element in tiles
+        drawPileDisplay.clear();
+        const localScale = scale + Math.floor(scale / 2);
+        for (let i = 0; i < tiles.length; i += 1) {
+          const tile = tiles[i];
+          const x = 5;
+          const y = (boardHeight - 1) * 3 * scale - i * 5 - 20;
+          renderTile(drawPileDisplay, tile, x, y, 3, localScale);
+        }
+      }
+
+      function renderHand(hand) {
+        handDisplay.clear();
+
+        for (let index = 0; index < hand.length; index += 1) {
+          const tile = hand[index];
+          const localScale = scale + Math.floor(scale / 2);
+          if (isDefined(tile)) {
+            tileX = index * 3 * (localScale + 1) + 5;
+            tileY = 30;
+            renderTile(handDisplay, tile, tileX, tileY, 0, localScale);
+          }
+        }
+      }
+
+      function createGrid(maxWidth, maxHeight) {
+        let centreTilePlaced = false;
+        const proto_grid = {};
+        const tiles = [];
+        const spots = [];
+
+        const NORTH = 2;
+        const EAST = 4;
+        const SOUTH = 8;
+        const WEST = 1;
+
+        const checkSpots = [
+          [NORTH, 0, -1, SOUTH],
+          [EAST, 1, 0, WEST],
+          [SOUTH, 0, 1, NORTH],
+          [WEST, -1, 0, EAST],
+        ];
+
+        for (let i = 0; i < maxHeight; i += 1) {
+          spots.push(new Array(maxWidth).fill(undefined));
+        }
+
+        function spotAvailable(x, y) {
+          if (x < 0 || x >= maxWidth || y < 0 || y >= maxHeight) {
+            return false;
+          }
+          return spots[y][x] === undefined;
+        }
+
+        function updateSpotsForRotation(tile, x, y, rotation) {
+          const rotationData = [
+            // Rotation 0
+            {
+              head: {
+                xOffset: 0,
+                yOffset: 0,
+                indices: [
+                  [0, WEST],
+                  [1, NORTH],
+                  [2, EAST],
+                ],
+              },
+              tail: {
+                xOffset: 0,
+                yOffset: 1,
+                indices: [
+                  [3, EAST],
+                  [4, SOUTH],
+                  [5, WEST],
+                ],
+              },
+            },
+            // Rotation 1
+            {
+              head: {
+                xOffset: 0,
+                yOffset: 0,
+                indices: [
+                  [3, SOUTH],
+                  [4, WEST],
+                  [5, NORTH],
+                ],
+              },
+              tail: {
+                xOffset: 1,
+                yOffset: 0,
+                indices: [
+                  [0, NORTH],
+                  [1, EAST],
+                  [2, SOUTH],
+                ],
+              },
+            },
+            // Rotation 2
+            {
+              head: {
+                xOffset: 0,
+                yOffset: 0,
+                indices: [
+                  [3, WEST],
+                  [4, NORTH],
+                  [5, EAST],
+                ],
+              },
+              tail: {
+                xOffset: 0,
+                yOffset: 1,
+                indices: [
+                  [0, EAST],
+                  [1, SOUTH],
+                  [2, WEST],
+                ],
+              },
+            },
+            // Rotation 3
+            {
+              head: {
+                xOffset: 0,
+                yOffset: 0,
+                indices: [
+                  [0, SOUTH],
+                  [1, WEST],
+                  [2, NORTH],
+                ],
+              },
+              tail: {
+                xOffset: 1,
+                yOffset: 0,
+                indices: [
+                  [3, NORTH],
+                  [4, EAST],
+                  [5, SOUTH],
+                ],
+              },
+            },
+          ];
+
+          const curRotation = rotationData[rotation];
+          for (const sectionName in curRotation) {
+            const section = curRotation[sectionName];
+            let spotValue = 0;
+            for (const row of section.indices) {
+              if (tile.definition[row[0]] === "1") {
+                spotValue += row[1];
+              }
+            }
+            setSpotAt(spotValue, x + section.xOffset, y + section.yOffset);
+          }
+        }
+
+        function removeSpotsForRotation(x, y, rotation) {
+          const tailX = x + (rotation % 2);
+          const tailY = y + 1 - (rotation % 2);
+          removeSpotAt(x, y);
+          removeSpotAt(tailX, tailY);
+        }
+
+        function placeTileAt(tile, x, y, rotation) {
+          if (isOutOfBounds(x, y, rotation)) {
+            return false;
+          }
+
+          const tailX = x + (rotation % 2);
+          const tailY = y + 1 - (rotation % 2);
+
+          tile.x = x;
+          tile.y = y;
+          tile.rotation = rotation;
+
+          // Set tile at head location
+          const headIndex = y * maxWidth + x;
+          tiles[headIndex] = tile;
+
+          // set tile at tail location
+          const tailIndex = tailY * maxWidth + tailX;
+          tiles[tailIndex] = tile;
+
+          updateSpotsForRotation(tile, x, y, rotation);
+
+          //   console.table(spots);
+          return true;
+        }
+
+        function removeTileAt(x, y, rotation) {
+          if (isUndefined(getTileAt(x, y))) {
+            return;
+          }
+
+          // Unset tile at head location
+          const headIndex = y * maxWidth + x;
+          tiles[headIndex] = undefined;
+
+          // Unset tile at tail location
+          const tailX = x + (rotation % 2);
+          const tailY = y + 1 - (rotation % 2);
+          const tailIndex = tailY * maxWidth + tailX;
+          tiles[tailIndex] = undefined;
+
+          // Unset spots too
+          removeSpotAt(x, y);
+          removeSpotAt(tailX, tailY);
+        }
+
+        function getTileAt(x, y) {
+          // TODO: Check if index out of bounds.
+          return tiles[y * maxWidth + x];
+        }
+
+        function setSpotAt(value, x, y) {
+          spots[y][x] = value;
+        }
+
+        function removeSpotAt(x, y) {
+          spots[y][x] = undefined;
+        }
+
+        function getSpotAt(x, y) {
+          if (x < 0 || x >= maxWidth) {
+            return;
+          }
+
+          if (y < 0 || y >= maxHeight) {
+            return;
+          }
+
+          return spots[y][x];
+        }
+
+        function getMatchStringForSpot(cX, cY) {
+          let matchString = "";
+          for (const checkSpot of checkSpots) {
+            const tX = cX + checkSpot[1];
+            const tY = cY + checkSpot[2];
+            const targetSpot = getSpotAt(tX, tY);
+            if (isDefined(targetSpot)) {
+              matchString += (targetSpot & checkSpot[3]) / checkSpot[3];
+            } else {
+              matchString += "a";
+            }
+          }
+
+          return matchString;
+        }
+
+        function tileMatchesForRotation(matchStr, definition, rotation) {
+          const matchIndices = [
+            [
+              // rotation 0
+              [1, 3],
+              [2, 4],
+              [3, 5],
+              [4, 1],
+              [5, 2],
+              [7, 0],
+            ],
+            [
+              // rotation 1
+              [2, 3],
+              [3, 4],
+              [0, 5],
+              [4, 0],
+              [5, 1],
+              [6, 2],
+            ],
+            [
+              // rotation 2
+              [1, 0],
+              [2, 1],
+              [3, 2],
+              [4, 4],
+              [5, 5],
+              [7, 3],
+            ],
+            [
+              // rotation 3
+              [2, 0],
+              [3, 1],
+              [0, 2],
+              [4, 3],
+              [5, 4],
+              [6, 5],
+            ],
+          ];
+
+          for (const indices of matchIndices[rotation]) {
+            const value = matchStr[indices[0]];
+            const marker = definition[indices[1]];
+            if (value !== "a" && value !== marker) {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        function isValidTilePlacement(tile, x, y, rotation) {
+          // Temporarily set spot values:
+          if (isOutOfBounds(x, y, rotation)) {
+            return false;
+          }
+
+          updateSpotsForRotation(tile, x, y, rotation);
+
+          const tailX = x + (rotation % 2);
+          const tailY = y + 1 - (rotation % 2);
+          const segments = [
+            { vertical: SOUTH, horizontal: EAST, x: x, y: y }, // Head segment
+            { vertical: NORTH, horizontal: WEST, x: tailX, y: tailY }, // Tail segment
+          ];
+          for (const segment of segments) {
+            for (const checkSpot of checkSpots) {
+              if (
+                (rotation % 2 === 0 && checkSpot[0] === segment.vertical) ||
+                (rotation % 2 === 1 && checkSpot[0] === segment.horizontal)
+              ) {
+                // Ignore our other segment
+                continue;
+              }
+              const tX = segment.x + checkSpot[1];
+              const tY = segment.y + checkSpot[2];
+              if (
+                isUndefined(getSpotAt(tX, tY)) &&
+                isSquare(tX, tY) &&
+                isDeathSquare(tX, tY)
+              ) {
+                // We've created a deathSquare.
+                // Clean up
+                removeSpotsForRotation(x, y, rotation);
+                // And GTFO
+                return false;
+              }
+            }
+          }
+
+          // Seems nothing wrong with this placement. we'll pack up and let you be.
+          removeSpotsForRotation(x, y, rotation);
+
+          return true;
+        }
+
+        function addAvailablePositionsForSpot(
+          availPos,
+          tile,
+          cX,
+          cY,
+          mustConnect = true
+        ) {
+          if (isDefined(getSpotAt(cX, cY))) {
+            // OCCUPADO!!
+            return;
+          }
+
+          if (isIsolated(cX, cY)) {
+            // No adjacent tiles. early exit.
+            return;
+          }
+
+          if (isSquare(cX, cY)) {
+            // No available space... early exit.
+            return;
+          }
+
+          const matchString = getMatchStringForSpot(cX, cY);
+          if (!matchString.includes("1") && mustConnect) {
+            // No halls to connect to but we must, so not available.
+            return;
+          }
+
+          const directions = {
+            north: {
+              checkIndex: 0,
+              head: [0, -1],
+              tail: [0, -1],
+              rotations: [0, 2],
+            },
+            east: {
+              checkIndex: 1,
+              head: [0, 0],
+              tail: [1, 0],
+              rotations: [1, 3],
+            },
+            south: {
+              checkIndex: 2,
+              head: [0, 0],
+              tail: [0, 1],
+              rotations: [0, 2],
+            },
+            west: {
+              checkIndex: 3,
+              head: [-1, 0],
+              tail: [-1, 0],
+              rotations: [1, 3],
+            },
+          };
+
+          for (const directionName in directions) {
+            const direction = directions[directionName];
+            if (matchString[direction.checkIndex] !== "a") {
+              continue;
+            }
+
+            const tailMatchString = getMatchStringForSpot(
+              cX + direction.tail[0],
+              cY + direction.tail[1]
+            );
+            for (const rotation of direction.rotations) {
+              let totalMatchStr;
+              if (directionName === "north" || directionName === "east") {
+                totalMatchStr = matchString + tailMatchString;
+              } else {
+                totalMatchStr = tailMatchString + matchString;
+              }
+
+              const pX = cX + direction.head[0];
+              const pY = cY + direction.head[1];
+              if (
+                tileMatchesForRotation(
+                  totalMatchStr,
+                  tile.definition,
+                  rotation
+                ) &&
+                isValidTilePlacement(tile, pX, pY, rotation)
+              ) {
+                availPos.push({
+                  x: pX,
+                  y: pY,
+                  rotation: rotation,
+                  totalMatchString: totalMatchStr,
+                });
+              }
+            }
+          }
+        }
+
+        function deltaFromCentre(x, y) {
+          const centreX = Math.floor(maxWidth / 2);
+          const centreY = Math.floor(maxHeight / 2);
+          let delta = Math.abs(centreX - x);
+          delta += Math.abs(centreY - y);
+
+          return delta;
+        }
+
+        function isIsolated(x, y) {
+          for (const checkSpot of checkSpots) {
+            const tX = x + checkSpot[1];
+            const tY = y + checkSpot[2];
+            if (isDefined(getSpotAt(tX, tY))) {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        function isOutOfBounds(x, y, rotation) {
+          const tailX = x + (rotation % 2);
+          const tailY = y + 1 - (rotation % 2);
+          if (x < 0 || y < 0 || tailX > maxWidth - 1 || tailY > maxHeight - 1) {
+            // console.log("Attemp at placing tile out of bounds");
+            return true;
+          }
+
+          return false;
+        }
+
+        function isSquare(x, y) {
+          for (const checkSpot of checkSpots) {
+            const tX = x + checkSpot[1];
+            const tY = y + checkSpot[2];
+            if (isUndefined(getSpotAt(tX, tY))) {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        function isDeathSquare(x, y) {
+          for (const checkSpot of checkSpots) {
+            const tX = x + checkSpot[1];
+            const tY = y + checkSpot[2];
+            if ((getSpotAt(tX, tY) & checkSpot[3]) === checkSpot[3]) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
+        function isFixableWithRemainingTiles(x, y) {
+          for (const tile of tileSet) {
+            const availPos = [];
+            addAvailablePositionsForSpot(availPos, tile, x, y, false);
+            if (availPos.length > 0) {
+              // We found at least one tile that fits here!
+              // TODO: Perhaps count number of available tiles.
+              //      More available tiles = better?
+              return true;
+            }
+          }
+
+          // Seems no tiles will fit... invalid board now.
+          return false;
+        }
+
+        proto_grid.isBoardFixable = () => {
+          const numSpots = maxWidth * maxHeight;
+          for (let index = 0; index < numSpots; index += 1) {
+            const y = Math.floor(index / maxWidth);
+            const x = index % maxWidth;
+            // check if we have a square.
+            if (isSquare(x, y)) {
+              // Is it a deathsquare?
+              if (isDeathSquare(x, y)) {
+                // Yup, it's a deathsquare, you're Fkd...
+                return false;
+              }
+            } else {
+              // Not a square so we can still place tiles here.
+              // But have we created a case that can only be fixed by a card we no longer have?
+              if (!isFixableWithRemainingTiles(x, y)) {
+                return false;
+              }
+            }
+          }
+
+          // Couldn't find anything wrong... yet.
+          return true;
+        };
+
+        proto_grid.calculateBoardValue = () => {
+          const numSpots = maxWidth * maxHeight;
+          let boardValue = 0;
+          for (let index = 0; index < numSpots; index += 1) {
+            const y = Math.floor(index / maxWidth);
+            const x = index % maxWidth;
+            const currSpot = getSpotAt(x, y);
+            if (isUndefined(currSpot)) {
+              // empty spot,
+              if (isIsolated(x, y)) {
+                // Isolated spot, not worth checking out... NEXT!!!!
+                continue;
+              }
+            }
+
+            for (const checkSpot of checkSpots) {
+              if ((currSpot & checkSpot[0]) === checkSpot[0]) {
+                // We have an exit, check if it's occupied
+                if (
+                  isUndefined(getSpotAt(x + checkSpot[1], y + checkSpot[2]))
+                ) {
+                  // Not occupied, means open exit, is bad.
+                  boardValue += 1;
+                }
+              }
+            }
+          }
+
+          return boardValue;
+        };
+
+        proto_grid.placeTileAt = (tile, x, y, rotation) => {
+          return placeTileAt(tile, x, y, rotation);
+        };
+
+        proto_grid.removeTileAt = (x, y, rotation) => {
+          removeTileAt(x, y, rotation);
+        };
+
+        proto_grid.getTiles = () => {
+          return tiles;
+        };
+
+        proto_grid.getAvailablePositions = (tile) => {
+          const availablePositions = [];
+          for (let cY = maxHeight - 1; cY >= 0; cY -= 1) {
+            for (let cX = maxWidth - 1; cX >= 0; cX -= 1) {
+              addAvailablePositionsForSpot(availablePositions, tile, cX, cY);
+            }
+          }
+
+          // order available positions by distance from centre tile DESC.
+          // (highest distance up front)
+          availablePositions.sort((a, b) => {
+            return deltaFromCentre(b.x, b.y) - deltaFromCentre(a.x, a.y);
+          });
+
+          return availablePositions;
+        };
+
+        proto_grid.placeCentreTile = (centreTile) => {
+          if (centreTilePlaced) {
+            throw new Error("Can only place centre tile once");
+          }
+          const x = Math.floor(maxWidth / 2);
+          const y = Math.floor(maxHeight / 2);
+
+          placeTileAt(centreTile, x, y, 1);
+          centreTilePlaced = true;
+        };
+
+        return proto_grid;
+      }
+
+      function drawTiles(hand, n = 3) {
+        while (hand.length < n) {
+          /*
+          const randomIndex = generateRandomNumber(tileSet.length);
+          const tile = tileSet.splice(randomIndex, 1)[0];
+          /*/
+          const tile = tileSet.pop();
+          //*/
+
+          hand.push(tile);
+        }
+      }
+
+      function playRandomGame() {
+        // Copy available tiles
+        const centreTileIndex = tileSet.indexOf(TILE_BANDIDA);
+        const centreTile = tileSet.splice(centreTileIndex, 1)[0];
+        const grid = createGrid(boardWidth, boardHeight);
+        const hand = [];
+
+        grid.placeCentreTile(centreTile);
+
+        drawTiles(hand);
+
+        renderBoard(grid.getTiles());
+        renderHand(hand);
+
+        function emptyHand() {
+          console.log("Emptying hand of", hand.length);
+          for (let index = hand.length - 1; index >= 0; index -= 1) {
+            const discardedTile = hand.pop();
+            console.log(" > ", discardedTile.definition);
+          }
+        }
+
+        function removeTileFromHand(tile) {
+          hand.splice(hand.indexOf(tile), 1);
+        }
+
+        function tileIsExit(tile) {
+          const markers = tile.definition;
+          return (
+            +(markers[0] + markers[1] + markers[2]) === 0 ||
+            +(markers[3] + markers[4] + markers[5]) === 0
+          );
+        }
+
+        function getBestChoiceForTile(tile, availPos) {
+          let smallestValue = grid.calculateBoardValue();
+          const choices = [];
+
+          while (availPos.length > 0) {
+            const position = availPos.pop();
+
+            // Place tile at location...
+            const tilePlaced = grid.placeTileAt(
+              tile,
+              position.x,
+              position.y,
+              position.rotation
+            );
+
+            if (tilePlaced) {
+              // ... and check if this is better
+              const value = grid.calculateBoardValue();
+              const isFixable = grid.isBoardFixable();
+              if (value < smallestValue) {
+                smallestValue = value;
+              }
+              // add choice
+              choices.push({
+                tile: tile,
+                position: position,
+                value: value,
+                isExit: tileIsExit(tile),
+                isFixable: isFixable,
+              });
+
+              grid.removeTileAt(position.x, position.y, position.rotation);
+            }
+          }
+
+          let bestChoices = choices.filter((choice) => {
+            return choice.value <= smallestValue && choice.isFixable;
+          });
+
+          return bestChoices[generateRandomNumber(bestChoices.length)];
+        }
+
+        function renderRandomGame() {
+          if (tileSet.length === 0) {
+            loop.stop();
+            displayGameOver();
+            return;
+          }
+
+          const choices = [];
+          for (const tile of hand) {
+            const availPos = grid.getAvailablePositions(tile);
+            choice = getBestChoiceForTile(tile, availPos);
+            if (isDefined(choice)) {
+              choices.push(choice);
+            }
+            choices.sort((a, b) => a.value - b.value);
+          }
+
+          let bestChoice;
+          if (choices.length > 0) {
+            bestChoice = choices[0];
+          }
+
+          if (isUndefined(bestChoice)) {
+            // No tile fits
+            emptyHand();
+            drawTiles(hand);
+          } else {
+            // Remove tile from hand
+            removeTileFromHand(bestChoice.tile);
+            // And place it on the board
+            grid.placeTileAt(
+              bestChoice.tile,
+              bestChoice.position.x,
+              bestChoice.position.y,
+              bestChoice.position.rotation
+            );
+            // Then draw up to full again
+            drawTiles(hand);
+
+            updateScoreBoard(bestChoice.value);
+            if (bestChoice.value === 0) {
+              loop.stop();
+              displayGameWon();
+            }
+          }
+
+          // Now render everything
+          renderBoard(grid.getTiles());
+          renderHand(hand);
+        }
+
+        loop = mainLoop(renderRandomGame);
+        loop.start();
+      }
+
+      function solveFixedGame() {
+        const centreTileIndex = tileSet.indexOf(TILE_BANDIDA);
+        const centreTile = tileSet.splice(centreTileIndex, 1)[0];
+        const drawPile = tileSet.slice();
+        const grid = createGrid(boardWidth, boardHeight);
+        const hand = [];
+        let boardValue;
+        let numIterations = 0;
+
+        grid.placeCentreTile(centreTile);
+
+        // Let us not complicate matters with hand sizes just yet.
+        // drawTiles(hand, 1);
+
+        // for (const tile of hand) {
+        //   const availPos = grid.getAvailablePositions(tile);
+        // }
+        let availablePositions; // How do we yield and re-yield this?
+        let position; // This should be initiated with our first available option
+        let tile;
+
+        tile = drawPile.pop();
+        availablePositions = grid.getAvailablePositions(tile);
+        position = availablePositions.pop();
+
+        const triedPositions = {};
+        const prevStates = [];
+
+        function getTriedPositionIndex(tile, position) {
+          return (
+            tile.definition +
+            "," +
+            position.x +
+            "," +
+            position.y +
+            "," +
+            position.rotation
+          );
+        }
+
+        function progressToNextState() {
+          if (boardValue === 0) {
+            // No more exits. game won!
+            displayGameWon();
+            loop.stop();
+            return;
+          }
+
+          if (isUndefined(position) && prevStates.length === 0) {
+            // Ran out of possibilities. Game cannot be solved.
+            displayGameOver();
+            loop.stop();
+            return;
+          }
+
+          if (drawPile.length > 0) {
+            // we have tiles left.
+            // So save state...
+            prevStates.push([tile, availablePositions]);
+            // ...and draw a new tile
+            tile = drawPile.pop();
+            // get available positions
+            availablePositions = grid.getAvailablePositions(tile);
+            // grab the first available position
+            position = availablePositions.pop();
+            // and place the tile there if possible
+            if (isDefined(position)) {
+              triedPositionIndex = getTriedPositionIndex(tile, position);
+              if (isUndefined(triedPositions[triedPositionIndex])) {
+                triedPositions[triedPositionIndex] = true;
+                grid.placeTileAt(
+                  tile,
+                  position.x,
+                  position.y,
+                  position.rotation
+                );
+              }
+            }
+          } else {
+            // In case no more cards are left, the game would be over, this setup does not resolve.
+            // So pick up the current card again...
+            grid.removeTileAt(position.x, position.y, position.rotation);
+            // ...and try the next position instead
+            position = availablePositions.pop();
+            if (isDefined(position)) {
+              triedPositionIndex = getTriedPositionIndex(tile, position);
+              if (isUndefined(triedPositions[triedPositionIndex])) {
+                triedPositions[triedPositionIndex] = true;
+                grid.placeTileAt(
+                  tile,
+                  position.x,
+                  position.y,
+                  position.rotation
+                );
+              }
+            } else {
+              while (isUndefined(position)) {
+                // If no more available positions for this tile exist.
+                // Stash the current tile back on the drawpile...
+                drawPile.push(tile);
+                // ...and go back to a previous state
+                const prevState = prevStates.pop();
+                if (isUndefined(prevState)) {
+                  return;
+                }
+                tile = prevState[0];
+                grid.removeTileAt(tile.x, tile.y, tile.rotation);
+                availablePositions = prevState[1];
+                // Now try this state's next possible position
+                position = availablePositions.pop();
+                if (
+                  isDefined(position) &&
+                  isDefined(
+                    triedPositions[getTriedPositionIndex(tile, position)]
+                  )
+                ) {
+                  // skip this position, we've already tried it.
+                  position = undefined;
+                }
+              }
+
+              triedPositions[getTriedPositionIndex(tile, position)] = true;
+              grid.placeTileAt(tile, position.x, position.y, position.rotation);
+            }
+          }
+        }
+
+        function renderCurrentState() {
+          renderBoard(grid.getTiles());
+          boardValue = grid.calculateBoardValue();
+          updateScoreBoard(boardValue);
+          updateNumIterations((numIterations += 1));
+          progressToNextState();
+        }
+
+        loop = mainLoop(renderCurrentState);
+        loop.start();
+      }
+
+      function init() {
+        const cW = boardWidth * scale * 3;
+        const cH = boardHeight * scale * 3;
+
+        boardCanvas = createCanvas(cW, cH);
+        document.body.appendChild(boardCanvas);
+        boardDisplay = createDisplayFromCanvas(boardCanvas);
+
+        placedTilesCanvas = createCanvas(cW, cH);
+        document.body.appendChild(placedTilesCanvas);
+        placedTilesDisplay = createDisplayFromCanvas(placedTilesCanvas);
+
+        handCanvas = createCanvas(cW, cH);
+        document.body.appendChild(handCanvas);
+        handDisplay = createDisplayFromCanvas(handCanvas);
+
+        drawPileCanvas = createCanvas(cW, cH);
+        document.body.appendChild(drawPileCanvas);
+        drawPileDisplay = createDisplayFromCanvas(drawPileCanvas);
+
+        tileSet = AVAILABLE_TILES.slice();
+
+        const centreTileIndex = tileSet.indexOf(TILE_BANDIDA);
+        const centreTile = tileSet.splice(centreTileIndex, 1)[0];
+        const grid = createGrid(boardWidth, boardHeight);
+        const hand = [];
+        const game = createGivenTileSetSolver(tileSet, grid);
+
+        grid.placeCentreTile(centreTile);
+        game.drawTiles(hand);
+
+        renderBoard();
+
+        let numIterations = 0;
+        function tic() {
+          // Update the board
+          numIterations += 1;
+          const boardValue = grid.calculateBoardValue();
+          updateScoreBoard(boardValue);
+          updateNumIterations(numIterations);
+
+          // Do the gameplay loop itself
+          // First we try and place a tile
+          const gameState = game.placeTile(boardValue, hand);
+          // Then we draw up to full
+          game.drawTiles(hand);
+
+          renderPlacedTiles(grid.getTiles());
+          renderDrawPile(tileSet);
+          renderHand(hand);
+
+          if (gameState === 0) {
+            // Game completed successfully
+            displayGameWon();
+            loop.stop();
+          }
+
+          if (gameState === -1) {
+            // Game over.
+            displayGameOver();
+            loop.stop();
+          }
+        }
+
+        loop = mainLoop(tic);
+        loop.start();
+
+        // debugger;
+        // /*
+        // playRandomGame();
+        // /*/
+        // solveFixedGame();
+        // //*/
+      }
+
+      window.onload = init;
+    </script>
+    <div class="scoreBoard">
+      <button id="btn_next" onclick="loop.next();">>>></button>
+      <button id="btn_start" onclick="loop.start();">Start</button>
+      <button id="btn_stop" onclick="loop.stop();">Stop</button>
+      <label>
+        Board value: <span id="boardValue">0</span> Iterations:
+        <span id="numIterations">0</span>
+        <span id="gameStateText"></span>
+      </label>
+    </div>
+  </body>
+</html>
