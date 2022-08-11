@@ -10,7 +10,8 @@
     <script src="mainLoop.js"></script>
     <script src="bandidaTiles.js"></script>
     <script src="solveGivenTileSet.js"></script>
-
+    <script src="manualBandidaGame.js"></script>
+    
     <style type="text/css">
       html {
         padding: 0;
@@ -83,9 +84,9 @@
       let grid;
       let loop;
       let tileSet;
-      let scale = 10;
-      let boardWidth = 50;
-      let boardHeight = 50;
+      let scale = 12;
+      let boardWidth = 21;
+      let boardHeight = 21;
 
       function createCanvas(width, height) {
         const canvas = document.createElement("canvas");
@@ -371,12 +372,12 @@
         }
 
         function placeTileAt(tile, x, y, rotation) {
-          if (isOutOfBounds(x, y, rotation)) {
-            return false;
-          }
-
           const tailX = x + (rotation % 2);
           const tailY = y + 1 - (rotation % 2);
+
+          if (!spotAvailable(x, y) || !spotAvailable(tailX, tailY)) {
+            return false;
+          }
 
           tile.x = x;
           tile.y = y;
@@ -854,7 +855,8 @@
         const centreTile = tileSet.splice(centreTileIndex, 1)[0];
         const grid = createGrid(boardWidth, boardHeight);
         const hand = [];
-        const game = createGivenTileSetSolver(tileSet, grid);
+        // const game = createGivenTileSetSolver(tileSet, grid);
+        const game = createManualBandidaGame(tileSet, grid);
 
         grid.placeCentreTile(centreTile);
         game.drawTiles(hand);
@@ -892,7 +894,8 @@
         }
 
         loop = mainLoop(tic);
-        loop.start();
+        loop.next();
+        // loop.start();
       }
 
       window.onload = init;
