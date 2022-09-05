@@ -11,7 +11,7 @@
     <script src="bandidaTiles.js"></script>
     <script src="solveGivenTileSet.js"></script>
     <script src="manualBandidaGame.js"></script>
-    
+
     <style type="text/css">
       html {
         padding: 0;
@@ -29,10 +29,31 @@
         height: 100%;
       }
 
-      canvas {
-        /* background-color: #161616; */
-        position: absolute;
-        z-index: -1;
+      /* canvas { */
+      /* background-color: #161616; */
+      /* position: absolute; */
+      /* z-index: -1; */
+      /* } */
+
+      #hud {
+        z-index: 5;
+      }
+
+      #gameBoardContainer {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        justify-content: center;
+        align-content: center;
+        z-index: 1;
+      }
+
+      #gameBoard {
+        width: fit-content;
+        height: fit-content;
+        display: grid;
+        justify-content: center;
+        align-content: center;
       }
 
       button,
@@ -187,12 +208,12 @@
         // }
         // Horizontal grid lines
         for (let i = 0; i <= bH; i += gridSize) {
-            boardDisplay.drawLine(0, i, bW, i, "#111", 2);
+          boardDisplay.drawLine(0, i, bW, i, "#111", 2);
         }
 
         // Vertical grid lines
         for (let i = 0; i <= bW; i += gridSize) {
-            boardDisplay.drawLine(i, 0, i, bH, "#111", 2);
+          boardDisplay.drawLine(i, 0, i, bH, "#111", 2);
         }
       }
 
@@ -836,17 +857,30 @@
         const cW = boardWidth * scale * 3;
         const cH = boardHeight * scale * 3;
 
-        boardCanvas = createCanvas(cW, cH);
-        document.body.appendChild(boardCanvas);
+        const gameBoard = document.getElementById("gameBoard");
+        const hud = document.getElementById("hud");
+
+        // boardCanvas = createCanvas(cW, cH);
+        boardCanvas = document.getElementById("boardCanvas");
+        boardCanvas.width = cW;
+        boardCanvas.height = cH;
+        // gameBoard.appendChild(boardCanvas);
         boardDisplay = createDisplayFromCanvas(boardCanvas);
 
-        placedTilesCanvas = createCanvas(cW, cH);
-        document.body.appendChild(placedTilesCanvas);
+        // placedTilesCanvas = createCanvas(cW, cH);
+        placedTilesCanvas = document.getElementById("placedTilesCanvas");
+        placedTilesCanvas.width = cW;
+        placedTilesCanvas.height = cH;
+        placedTilesCanvas.style.setProperty("position", "absolute");
+        // gameBoard.appendChild(placedTilesCanvas);
         placedTilesDisplay = createDisplayFromCanvas(placedTilesCanvas);
 
-        hudCanvas = createCanvas(window.innerWidth, window.innerHeight);
+        // hudCanvas = createCanvas(window.innerWidth, window.innerHeight);
+        hudCanvas = document.getElementById("hudCanvas");
+        hudCanvas.width = window.innerWidth;
+        hudCanvas.height = window.innerHeight;
         hudCanvas.style.setProperty("position", "fixed");
-        document.body.appendChild(hudCanvas);
+        // hud.appendChild(hudCanvas);
         hudDisplay = createDisplayFromCanvas(hudCanvas);
 
         tileSet = AVAILABLE_TILES.slice();
@@ -855,8 +889,8 @@
         const centreTile = tileSet.splice(centreTileIndex, 1)[0];
         const grid = createGrid(boardWidth, boardHeight);
         const hand = [];
-        // const game = createGivenTileSetSolver(tileSet, grid);
-        const game = createManualBandidaGame(tileSet, grid);
+        const game = createGivenTileSetSolver(tileSet, grid);
+        // const game = createManualBandidaGame(tileSet, grid);
 
         grid.placeCentreTile(centreTile);
         game.drawTiles(hand);
@@ -894,21 +928,33 @@
         }
 
         loop = mainLoop(tic);
+        /*
         loop.next();
-        // loop.start();
+        /*/
+        loop.start();
+        //*/
       }
 
       window.onload = init;
     </script>
-    <div class="scoreBoard">
-      <button id="btn_next" onclick="loop.next();">>>></button>
-      <button id="btn_start" onclick="loop.start();">Start</button>
-      <button id="btn_stop" onclick="loop.stop();">Stop</button>
-      <label>
-        Board value: <span id="boardValue">0</span> Iterations:
-        <span id="numIterations">0</span>
-        <span id="gameStateText"></span>
-      </label>
+    <div id="hud">
+      <canvas id="hudCanvas"></canvas>
+      <div class="scoreBoard">
+        <button id="btn_next" onclick="loop.next();">>>></button>
+        <button id="btn_start" onclick="loop.start();">Start</button>
+        <button id="btn_stop" onclick="loop.stop();">Stop</button>
+        <label>
+          Board value: <span id="boardValue">0</span> Iterations:
+          <span id="numIterations">0</span>
+          <span id="gameStateText"></span>
+        </label>
+      </div>
+    </div>
+    <div id="gameBoardContainer">
+      <div id="gameBoard">
+        <canvas id="boardCanvas"></canvas>
+        <canvas id="placedTilesCanvas"></canvas>
+      </div>
     </div>
   </body>
 </html>

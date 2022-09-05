@@ -310,3 +310,11 @@ if (iDidThingsByNotThinkingItOutProperly()) {
     grid.placeTileAt(tile, position.x, position.y, position.rotation);
   }
 }
+
+// -----------------------------------------
+
+document.addEventListener("keypress", (keyboardEvent) => {
+  charCode = keyboardEvent.charCode;
+  keyCode = keyboardEvent.keyCode;
+  console.log(String.fromCharCode(charCode));
+});
