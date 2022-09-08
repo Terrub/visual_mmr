@@ -1,517 +1,178 @@
-"use strict";
+/* eslint
+    no-bitwise: ["error", { "allow": ["|", "^"] }]
+ */
 
-function isUndefined(value) {
-
+export class Utils {
+  static isUndefined(value) {
     // NOTE 1: value being a reference to something.
 
     /* NOTE 2: changed the use of: */
     // return (value === undefined);
     /* to: */
-    return ( typeof value === "undefined" );
+    return (typeof value === 'undefined');
     /* as this is supported on more browsers according to Teun Lassche */
+  }
 
-}
+  static isDefined(value) {
+    return !Utils.isUndefined(value);
+  }
 
-function isDefined(value) {
+  static isBoolean(value) {
+    return (typeof value === 'boolean');
+  }
 
-    return !isUndefined(value);
+  static isNumber(num) {
+    return (typeof num === 'number');
+  }
 
-}
+  static isInteger(value) {
+    return (value === +value) && (value === (value | 0));
+  }
 
-function isBoolean(value) {
+  static isString(value) {
+    return (typeof value === 'string');
+  }
 
-    return ( typeof value === "boolean" );
-
-}
-
-function isNumber(num) {
-
-    return ( typeof num === "number" );
-
-}
-
-function isInteger_old(value) {
-
-    if (isString(value)) {
-
-        return false;
-
-    }
-
-    var regexp = new RegExp("^[-+]?[0-9]+$");
-
-    return regexp.test(value);
-
-}
-
-function isInteger(value) {
-
-    return ( value === +value ) && ( value === ( value | 0 ) );
-
-}
-
-function isString(value) {
-
-    return ( typeof value === "string" );
-
-}
-
-function isNull(value) {
-
+  static isNull(value) {
     return value === null;
+  }
 
-}
-
-function isObject(value) {
-
-    //#NOTE1: typeof null === 'object' so check for null as well!
-    if (isNull(value)) {
-
-        return false;
-
+  static isObject(value) {
+    // #NOTE1: typeof null === 'object' so check for null as well!
+    if (Utils.isNull(value)) {
+      return false;
+    }
+    if (Utils.isUndefined(value)) {
+      return false;
     }
 
-    if (isUndefined(value)) {
+    return (typeof value === 'object');
+  }
 
-        return false;
+  static isFunction(value) {
+    return (typeof value === 'function');
+  }
 
+  static isEmptyObject(value) {
+    if (!Utils.isObject(value)) {
+      return false;
     }
 
-    return ( typeof value === "object" );
+    return (Object.getOwnPropertyNames(value).length === 0);
+  }
 
-}
+  static isArray(value) {
+    return (Array.isArray(value));
+  }
 
-function isFunction(value) {
+  static constrain(value, lowerBound, upperBound) {
+    return Math.max(lowerBound, Math.min(upperBound, value));
+  }
 
-    return ( typeof value === "function" );
-
-}
-
-function isEmptyObject(value) {
-
-    if (!isObject(value)) {
-
-        return false;
-
+  static objectEquals(x, y) {
+    if (Utils.isNull(x) || Utils.isNull(y) || Utils.isUndefined(x) || Utils.isUndefined(y)) {
+      return x === y;
     }
 
-    return ( Object.getOwnPropertyNames(value).length === 0 );
+    // after this just checking type of one would be enough
+    if (x.constructor !== y.constructor) {
+      return false;
+    }
 
-}
+    // if they are functions, they should exactly refer to same one (because of closures)
+    // if they are regexps, they should exactly refer to same one
+    //    it is hard to better equality check on current ES
+    if (x instanceof Function || x instanceof RegExp) {
+      return x === y;
+    }
 
-function isArray(value) {
+    if (x === y || x.valueOf() === y.valueOf()) {
+      return true;
+    }
 
-    return ( Array.isArray(value) );
+    if (Utils.isArray(x) && x.length !== y.length) {
+      return false;
+    }
 
-}
+    // if they are dates, they must've had equal valueOf
+    if (x instanceof Date) {
+      return false;
+    }
 
-// --------
+    // if they are strictly equal, they both need to be object at least
+    if (!(Utils.isObject(x) && Utils.isObject(y))) {
+      return false;
+    }
 
-function faultOnError(err) {
+    // recursive object equality check
+    const xKeys = Object.keys(x);
+    const yKeysInX = Object.keys(y).every((i) => xKeys.indexOf(i) !== -1);
+    const valuesEqual = xKeys.every((i) => Utils.objectEquals(x[i], y[i]));
 
-    var errBody = document.createElement("body");
+    return (yKeysInX && valuesEqual);
+  }
 
-    errBody.style.backgroundColor = "#cc3333";
-    errBody.style.color = "#ffffff";
+  static shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
 
-    errBody.innerHTML = "<pre>" + err + "</pre>";
-
+  static faultOnError(err) {
+    const errBody = document.createElement('body');
+    errBody.style.backgroundColor = '#cc3333';
+    errBody.style.color = '#ffffff';
+    errBody.innerHTML = `<pre>${err}</pre>`;
     document.body = errBody;
 
     throw err;
+  }
 
-}
-
-function attempt(toAttempt, args) {
+  static attempt(toAttempt, ...args) {
+    let result;
 
     try {
-
-        return toAttempt.apply(null, args);
-
+      result = toAttempt(...args);
     } catch (err) {
-
-        faultOnError(err);
-
+      Utils.faultOnError(err);
     }
 
-}
+    return result;
+  }
 
-function onlyProceedIf(statement, check) {
+  static report(...args) {
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
 
-    if (attempt(check, [statement]) !== true) {
-
-        reportError("A checkpoint failed, check the stack for more info.");
-
-    }
-
-}
-
-function getTime() {
-
-    return Date.now();
-
-}
-
-function generateRandomNumber( max, min ) {
-
-    var random_number;
-
-    if ( typeof max === "undefined" ) { max = 100; }
-
-    if ( typeof min === "undefined" ) { min = 0; }
-
-    random_number = Math.floor( ( Math.random() * ( max - min ) ) + min );
-
-    return random_number;
-
-}
-
-function report() {
-
-    console.log.apply(console, arguments);
-
-}
-
-function reportError(error) {
-
+  static reportError(error) {
     throw new Error(error);
+  }
 
-}
+  static onlyProceedIf(statement, check) {
+    if (Utils.attempt(check, [statement]) !== true) {
+      Utils.reportError('A checkpoint failed, check the stack for more info.');
+    }
+  }
 
-function reportUsageError(error) {
+  static getTime() {
+    return Date.now();
+  }
 
+  static generateRandomNumber(pMax, pMin) {
+    let max = pMax;
+    let min = pMin;
+
+    if (!Utils.isInteger(max)) { max = 100; }
+    if (!Utils.isInteger(min)) { min = 0; }
+    const randomNumber = Math.floor((Math.random() * (max - min)) + min);
+
+    return randomNumber;
+  }
+
+  static reportUsageError(error) {
     // For now just report the error normally;
-    reportError(error);
-
+    Utils.reportError(error);
+  }
 }
-
-var marker = (function define_marker() {
-
-    var caller = "first mark";
-    var last_call = getTime();
-    var now;
-
-    function proto_marker(p_caller) {
-
-        now = getTime();
-
-        report((now - last_call) + " ms since '" + caller + "' was called");
-
-        last_call = now;
-        caller = p_caller;
-
-    }
-
-    return proto_marker;
-
-}())
-
-// --------
-
-var formatise = ( function ConstructFormatise() {
-
-    "use strict";
-
-    var self;
-
-    var arguments_to_format;
-
-    var supported_types = {};
-    var supported_type_flags = "";
-
-    var pattern;
-    var pattern_was_changed = true;
-
-    function addFormatType(flag, typeDefinitionTest) {
-
-        if (!isString(flag)) {
-
-            reportUsageError(
-                "formatise.addFormatType expects argument #1 to be of type"
-                + " 'String'."
-            );
-
-        }
-
-        if (!isFunction(typeDefinitionTest)) {
-
-            reportUsageError(
-                "formatise.addFormatType expects argument #2 to be of type"
-                + " 'Function'."
-            );
-
-        }
-
-        supported_types[flag] = typeDefinitionTest;
-        supported_type_flags += flag;
-
-        pattern_was_changed = true;
-
-    }
-
-    function typeCheck(match, position, type_flag) {
-
-        var insert_value = arguments_to_format[position];
-        var checkType = supported_types[type_flag];
-
-        if (isUndefined(insert_value)) {
-
-            // _report("Formatize parameter mismatch");
-
-            return "undefined";
-
-        }
-
-        if (!checkType) {
-
-            // _report("Formatize unsupported type");
-
-            return "[unsupported type]";
-
-        }
-
-        if (!checkType(insert_value)) {
-
-            // _report("Formatize type mismatch");
-
-            return "[type mismatch]";
-
-        }
-
-        return insert_value;
-
-    }
-
-    function updatePattern() {
-
-        /*  Attempt to find & replace en masse to prevent loops
-         Hopefully the 'g' modifier is enough */
-        pattern = new RegExp(
-            "{@([0-9]+):([" + supported_type_flags + "])}",
-            "gi"
-        );
-
-        pattern_was_changed = false;
-
-    }
-
-    /**
-     * Formatises a list of variable arguments into the allocated position of
-     * the given format.
-     *
-     * Arguments:
-     *  <string> "format"
-     *      The format the given arguments have to be allocated to.
-     *  <*> ... (optional)
-     *      A variable list of arguments that will be ordered into the given
-     *      format.
-     *      Available format options:
-     *      "{@x:T}" where x is the position of the argument in the provided
-     *      argument list (optional)
-     *      and T = the required type (or types?) the argument needs to adhere
-     *      to.
-     *      Possible types are:
-     *      - 'b' Boolean
-     *      - 'i' Integer
-     *      - 'n' Number
-     *      - 's' String
-     *
-     * Return:
-     *  <string>
-     *      The formatted arguments
-     */
-    function format(supplied_format) {
-
-        /*  We need to store all the given arguments we received here so we so
-         we can pass them along to the 'typecheck and replace'-function in
-         our String.replace down below. */
-        arguments_to_format = arguments;
-
-        if (pattern_was_changed) {
-
-            updatePattern();
-
-        }
-
-        if (!isString(supplied_format)) {
-
-            // report(
-            //     "function 'format' expected string as argument #1, received:",
-            //     supplied_format
-            // );
-
-            return false;
-
-        }
-
-        return supplied_format.replace(pattern, typeCheck);
-
-    }
-
-    addFormatType("b", isBoolean);
-    addFormatType("n", isNumber);
-    addFormatType("i", isInteger);
-    addFormatType("s", isString);
-
-    /*  Allow the outside to reach us. */
-    self = format;
-    self.addFormatType = addFormatType;
-
-    return self;
-
-}() );
-
-var ropBotTestRunner = ( function ropBotTestRunnerConstructor() {
-
-    "use strict";
-
-    var self;
-
-    var result;
-    var conclusion;
-    var color;
-    var statement;
-    var expectation;
-    var experiment;
-
-    var assertions = [];
-    var assertion;
-
-    function postResults() {
-
-        report(
-            "RopBot: %c" + statement, color,
-            "| Expectation:", expectation,
-            "| Result:", result
-        );
-
-        return conclusion;
-
-    }
-
-    function addAssertion(key, description, assertFunction) {
-
-        if (!isString(key)
-            || !isString(description)
-            || !isFunction(assertFunction)) {
-
-            reportUsageError("usage: key <String>, description <String>, assertFunction <Function>.");
-
-        }
-
-        if (!isUndefined(self[key])) {
-
-            reportUsageError("following key is already in use: " + key);
-
-        }
-
-        self[key] = description;
-
-        assertions[description] = assertFunction;
-
-    }
-
-    function assertStrictlyEqual() {
-
-        try {
-
-            result = experiment();
-
-        } catch (error) {
-
-            result = error;
-
-        }
-
-        conclusion = ( result === expectation );
-
-        if (conclusion === true) {
-
-            color = "color: green";
-
-        } else {
-
-            color = "color: red";
-
-        }
-
-    }
-
-    function assertThrowsExpectedError() {
-
-        conclusion = false;
-
-        try {
-
-            result = experiment();
-
-        } catch (error) {
-
-            if (error !== expectation) {
-
-                conclusion = true;
-
-                result = error;
-
-            }
-
-        }
-
-    }
-
-    self = function (p_statement, p_assertion, p_expectation, p_experiment) {
-
-        result = undefined;
-        conclusion = undefined;
-        color = "color: orange";
-        expectation = p_expectation;
-
-        // Default the statement;
-        // we could be using it later for error reporting.
-        if (isUndefined(p_statement)) {
-
-            reportUsageError("Statement is required.");
-
-        } else {
-
-            statement = p_statement;
-
-        }
-
-        if (!isFunction(p_experiment)) {
-
-            return postResults();
-
-        }
-
-        experiment = p_experiment;
-
-        assertion = assertions[p_assertion];
-
-        if (isUndefined(assertion)) {
-
-            reportUsageError("Assertion not recognised: " + p_assertion);
-
-        }
-
-        assertion();
-
-        return postResults();
-
-    };
-
-    // Add all the constants here:
-    addAssertion(
-        "RESULT_EXACTLY_MATCHES_EXPECTATION",
-        "Result and expectation are exactly the same.",
-        assertStrictlyEqual
-    );
-    addAssertion(
-        "RESULT_THROWS_EXPECTED_ERROR",
-        "Result should throw the expected error message.",
-        assertThrowsExpectedError
-    );
-
-    return self;
-
-}() );
