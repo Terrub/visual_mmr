@@ -1,0 +1,368 @@
+<!DOCTYPE html><html><head>
+
+    <meta charset="utf-8" />
+
+    <title>Experiment 8</title>
+
+    <script src="utils.js"></script>
+    <script src="mainLoop.js"></script>
+    <script src="display.js"></script>
+    <script src="player.js"></script>
+    <script src="certaintyGraph.js"></script>
+    <script src="renderObject.js"></script>
+    <script src="renderableButton.js"></script>
+    <script src="renderableFramerate.js"></script>
+
+<style type="text/css">
+
+body {
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    background-color: #080808;
+}
+
+</style></head><body><script type="text/javascript">
+
+var canvas;
+var display;
+
+var mouseX;
+var mouseY;
+
+var ren_obs;
+var framerate;
+var start_btn;
+var stop_btn;
+var player_graphs;
+
+var round;
+var old_round;
+var old_time;
+var time_per_round;
+
+function createCanvas(width, height) {
+
+    canvas = document.createElement('canvas');
+
+    canvas.width = width;
+    canvas.height = height;
+
+    return canvas;
+
+}
+
+function createPlayerGraph(width, height, num_units) {
+
+    var player = Player.create(Math.random(), Math.random());
+    var graph = CertaintyGraph.create(display, width, height, num_units);
+    var playerGraph = RenderObject.create();
+
+    playerGraph.player = player;
+    playerGraph.graph = graph;
+
+    playerGraph.measure = function (self) {
+
+        self.w = self.graph.w;
+        self.h = self.graph.h;
+
+    }
+
+    playerGraph.draw = function (self) {
+
+        self.graph.draw(self);
+
+    }
+
+    // coz we added children with display dimensions.
+    playerGraph.dimensions_have_changed = true;
+
+    return playerGraph;
+
+}
+
+function createPlayerGraphs(p_num_players) {
+
+    var player;
+    var graph;
+    var playerGraph;
+
+    var i = 0;
+    var n = p_num_players;
+
+    var playerGraphs = [];
+
+    for ( i; i < n; i += 1 ) {
+
+        playerGraphs.push(createPlayerGraph(600, 800, 200));
+
+    }
+
+    return playerGraphs;
+
+}
+
+function pointInsideObject(obj, px, py) {
+    var x = obj.x;
+    var y = obj.y;
+    var w = obj.w;
+    var h = obj.h;
+
+    return !(px > x + w || px < x || py > y + h || py < y);
+
+}
+
+function hookMousePositions() {
+
+    var mouse_hook = null;
+    var oldMouseMove = document.onmousemove;
+
+    function newMouseMove(event) {
+
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+
+    }
+
+    if (isFunction(oldMouseMove)) {
+
+        mouse_hook = function(event) {
+
+            var result;
+
+            result = oldMouseMove(event);
+
+            newMouseMove(event);
+
+            return result;
+
+        }
+
+        report("Outside mousemove hook was found. Using post-hook");
+
+    } else {
+
+        mouse_hook = newMouseMove;
+
+        report("No outside mousemove hook exists. Using direct hook");
+
+    }
+
+    document.onmousemove = mouse_hook;
+
+}
+
+function hookMouseClick() {
+
+    var click_hook = null;
+    var oldMouseClick = document.onclick;
+
+    function newMouseClick(event) {
+
+        if (pointInsideObject(start_btn, mouseX, mouseY)) {
+
+            ml.start();
+
+        }
+        else if (pointInsideObject(stop_btn, mouseX, mouseY)) {
+
+            ml.stop();
+
+        }
+        else {
+
+            report("Random click");
+
+        }
+
+    }
+
+    if (isFunction(oldMouseClick)) {
+
+        click_hook = function(event) {
+
+            oldMouseClick(event);
+            newMouseClick(event);
+
+        }
+
+        report("Outside click function was found. Using post-hook");
+
+    } else {
+
+        click_hook = newMouseClick;
+
+        report("No outside click function exists. Using direct hook");
+
+    }
+
+    document.onclick = click_hook;
+
+}
+
+function addNewPlayerData(p_player_graphs) {
+
+    var player_graph;
+    var player;
+    var new_score;
+
+    var i = 0;
+    var n = p_player_graphs.length;
+
+    for (i; i < n; i += 1) {
+
+        player_graph = p_player_graphs[i];
+
+        new_score = player_graph.player.getScore();
+
+        player_graph.graph.data.push(new_score);
+
+    }
+
+}
+
+function init() {
+
+    mouseX = 0.0;
+    mouseY = 0.0;
+    round = 0;
+    old_round = 0;
+    old_time = getTime();
+    time_per_round = 1; // 1 millisecond
+
+    ml = mainLoop(renderFrame);
+
+    canvas = createCanvas(window.innerWidth -4, window.innerHeight -4);
+
+    document.body.appendChild(canvas);
+
+    gl = canvas.getContext("2d");
+
+    display = createDisplayFromCanvas(canvas);
+
+    framerate = RenderableFramerate.create(display);
+    start_btn = RenderableButton.create(display, "START");
+    stop_btn = RenderableButton.create(display, "STOP");
+    player_graphs = createPlayerGraphs(5);
+
+    ren_obs = [];
+    ren_obs.push(start_btn);
+    ren_obs.push(stop_btn);
+    ren_obs.push(framerate);
+    ren_obs = ren_obs.concat(player_graphs);
+
+    hookMousePositions();
+    hookMouseClick();
+
+}
+
+// --------
+
+function checkForNextRound() {
+
+    var cur_time = getTime();
+
+    if (old_time + time_per_round < cur_time) {
+
+        round += 1;
+
+        old_time = cur_time;
+
+    }
+
+}
+
+function clear() {
+
+    display.clear();
+
+}
+
+function draw() {
+
+    var i;
+    var n;
+
+    var concurrent_x = 10;
+    var concurrent_y = 10;
+
+    n = ren_obs.length;
+
+    // Allow all objects to update themselves. Top-down approach
+    for (i = 0; i < n; i += 1) {
+
+        ren_ob = ren_obs[i];
+
+        if (ren_ob.properties_have_changed) {
+
+            ren_ob.update(ren_ob);
+
+            ren_ob.properties_have_changed = false;
+
+        }
+
+    }
+
+    // Allow all objects to measure themselves. Bottom-up approach
+    for (i = n - 1; i >= 0; i -= 1) {
+
+        ren_ob = ren_obs[i];
+
+        if (ren_ob.dimensions_have_changed) {
+
+            ren_ob.measure(ren_ob);
+
+            ren_ob.dimensions_have_changed = false;
+
+        }
+
+    }
+
+    // Allow all objects to display themselves. Top-down approach
+    for (i = 0; i < n; i += 1) {
+
+        ren_ob = ren_obs[i];
+
+        ren_ob.x = concurrent_x;
+        ren_ob.y = concurrent_y;
+
+        ren_ob.draw(ren_ob);
+
+    //*
+
+        //@HACK: I needed the first 2 buttons to go horizontal for now!
+        if (i < 2) { concurrent_x += ren_ob.w + 10; }
+        else { concurrent_x = 10; }
+
+    /*/
+
+        concurrent_x = 10;
+
+    //*/
+
+    }
+
+}
+
+function renderFrame() {
+
+    checkForNextRound();
+
+    if (round > old_round) {
+
+        old_round = round;
+
+        addNewPlayerData(player_graphs);
+
+    }
+
+    clear();
+
+    draw();
+
+}
+// debugger;
+init();
+ml.start();
+
+</script></body></html>
