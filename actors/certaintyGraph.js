@@ -3,7 +3,7 @@ import { Utils } from "../utils.js";
 function drawAxisX(instance) {
   const gl = instance.gLib;
   gl.drawRect(
-    instance.x + 0,
+    instance.x,
     instance.y + instance.h,
     instance.w,
     1,
@@ -48,11 +48,10 @@ function calcMeanFromData(data) {
 
 function calcValues(instance) {
   const data = instance.data;
-  // const mean = calcMeanFromData(data);
-  const w = instance.num_units;
+  const w = instance.numUnits;
   let i = 0;
   const n = data.length;
-  const values = instance.values;
+  const values = [];
 
   // initiate all x locations in the graph with 0;
   for (i = 0; i < w; i += 1) {
@@ -63,11 +62,13 @@ function calcValues(instance) {
     const x = Math.floor(data[i] * w);
     values[x] += 1;
   }
+
+  instance.values = values;
 }
 
 function drawCurve(instance) {
   const gl = instance.gLib;
-  const unit_width = instance.w / instance.numUnits;
+  const unitWidth = instance.w / instance.numUnits;
 
   for (let i = 0; i < instance.numUnits; i += 1) {
     let val = Math.floor(
@@ -80,9 +81,9 @@ function drawCurve(instance) {
       val = 0;
     }
     gl.drawRect(
-      instance.x + i * unit_width,
+      instance.x + i * unitWidth,
       instance.y + instance.h - val,
-      unit_width,
+      unitWidth,
       val,
       instance.colors.curve
     );
@@ -101,7 +102,7 @@ function getRandomColor() {
   const hue = Utils.generateRandomNumber(0, 360);
   const lum = Utils.generateRandomNumber(40, 70);
 
-  return `hsla(${hue}%, 100%, ${lum}%, 0.8)`;
+  return `hsla(${hue}, 100%, ${lum}%, 0.6)`;
 }
 
 export class CertaintyGraph {

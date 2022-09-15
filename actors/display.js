@@ -49,7 +49,7 @@ export class Display {
   clear() {
     this.gLib.clearRect(0, 0, this.width, this.height);
   }
- 
+
   clearRect(x, y, w, h) {
     this.gLib.clearRect(x, y, w, h);
   }
@@ -74,14 +74,14 @@ export class Display {
   }
 
   text = function (x, y, text, color, font) {
-    if (Utils.isDefined(color)) {
-      this.gLib.fillStyle = color;
-    }
-
     if (Utils.isDefined(font)) {
       this.gLib.font = font;
     }
 
+    if (Utils.isDefined(color)) {
+      this.gLib.fillStyle = color;
+    }
+
     this.gLib.fillText(text, x, y);
-  }
+  };
 }

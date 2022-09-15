@@ -1,4 +1,5 @@
 import { CertaintyGraph } from "./actors/certaintyGraph.js";
+import { EstimationGraph } from "./actors/estimationGraph.js";
 import { Display } from "./actors/display.js";
 import { createMainloop } from "./actors/mainloop.js";
 import { Player } from "./actors/player.js";
@@ -13,8 +14,34 @@ function createCanvas(width, height) {
   return canvas;
 }
 
+function getRandomName() {
+  const names = [
+    "Mawunyo",
+    "Amund",
+    "Lawal",
+    "Pan",
+    "Frea",
+    "Damnat",
+    "Nikon",
+    "Dukvakha",
+    "Pierre",
+    "Ilija",
+    "Helvius",
+    "Piaras",
+    "Sava",
+    "Narayan",
+    "Nereus",
+  ];
+
+  return names[Utils.generateRandomNumber(names.length, 0)];
+}
+
 function createPlayerGraph(width, height, numUnits) {
-  const player = new Player(Math.random(), Math.random());
+  const randomName = getRandomName();
+  const rating = Math.random();
+  const deviance = Math.random();
+
+  const player = new Player(display, randomName, rating, deviance);
   const graph = new CertaintyGraph(display, width, height, numUnits);
 
   return {
@@ -23,15 +50,27 @@ function createPlayerGraph(width, height, numUnits) {
   };
 }
 
-function createPlayerGraphs(p_num_players) {
-  const n = p_num_players;
+function createPlayerGraphs(pNumPlayers) {
+  const n = pNumPlayers;
   const playerGraphs = [];
 
   for (let i = 0; i < n; i += 1) {
-    playerGraphs.push(createPlayerGraph(600, 800, 200));
+    const playerGraph = createPlayerGraph(1200, 800, 200);
+    playerGraph.graph.x = 10;
+    playerGraph.graph.y = 10;
+    playerGraphs.push(playerGraph);
   }
 
   return playerGraphs;
+}
+
+function createEstimationGraphs(playerGraphs) {
+  const estimationGraphs = [];
+  for (const playerGraph of playerGraphs) {
+    const estimationGraph = new EstimationGraph(playerGraph.player);
+  }
+
+  return estimationGraphs;
 }
 
 function addNewPlayerData(pPlayerGraphs) {
@@ -56,49 +95,17 @@ function clear() {
   display.clear();
 }
 
-function draw() { 
-  let concurrent_x = 10;
-  let concurrent_y = 10;
-
-  // Allow all objects to update themselves. Top-down approach
+function draw() {
+  const n = playerGraphs.length;
   for (let i = 0; i < n; i += 1) {
-    const ren_ob = renderObjects[i];
+    const playerGraph = playerGraphs[i];
 
-    if (ren_ob.properties_have_changed) {
-      ren_ob.update(ren_ob);
-    }
-  }
+    playerGraph.graph.draw();
+    const color = playerGraph.graph.colors.curve;
+    const x = 1210;
+    const y = 10 + (i * 20);
 
-  // Allow all objects to measure themselves. Bottom-up approach
-  for (let i = n - 1; i >= 0; i -= 1) {
-    const ren_ob = renderObjects[i];
-
-    if (ren_ob.dimensionsHaveChanged) {
-      ren_ob.measure(ren_ob);
-    }
-  }
-
-  // Allow all objects to display themselves. Top-down approach
-  for (let i = 0; i < n; i += 1) {
-    const ren_ob = renderObjects[i];
-
-    ren_ob.x = concurrent_x;
-    ren_ob.y = concurrent_y;
-
-    ren_ob.draw(ren_ob);
-
-    //*
-
-    //@HACK: I needed the first 2 buttons to go horizontal for now!
-    if (i < 2) {
-      concurrent_x += ren_ob.w + 10;
-    } else {
-      concurrent_x = 10;
-    }
-
-    /*/
-        concurrent_x = 10;
-    //*/
+    playerGraph.player.draw(color, x, y);
   }
 }
 
@@ -131,14 +138,8 @@ const mainloop = createMainloop(renderFrame);
 
 document.body.appendChild(canvas);
 
-// framerate = RenderableFramerate.create(display);
-// renderObjects.push(framerate);
+const playerGraphs = createPlayerGraphs(2);
+const estimationGraphs = createEstimationGraphs(playerGraphs);
 
-const playerGraphs = createPlayerGraphs(1);
-renderObjects = renderObjects.concat(playerGraphs);
-
-hookMousePositions();
-hookMouseClick(mainloop);
-
-debugger;
+// debugger;
 mainloop.start();

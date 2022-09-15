@@ -2,14 +2,19 @@ import { Utils } from "../utils.js";
 
 export class Player {
   #rating;
-
   #deviance;
-
   #lowerBound;
-
   #upperBound;
+  #name;
+  #gLib;
 
-  constructor(pRating, pDeviance) {
+  constructor(pGLib, pName, pRating, pDeviance) {
+    this.#gLib = pGLib;
+
+    if (Utils.isString(pName)) {
+      this.#name = pName;
+    }
+
     if (Utils.isDefined(pRating)) {
       this.setRating(pRating);
     }
@@ -18,13 +23,30 @@ export class Player {
     }
   }
 
+  get name() {
+    return this.#name;
+  }
+
+  set name(value) {
+    if (!Utils.isString(value)) {
+      Utils.reportUsageError("name should be a string");
+
+      return;
+    }
+    this.#name = value;
+  }
+
   setRating(pRating) {
     if (!Utils.isNumber(pRating)) {
       Utils.reportUsageError("setRating requires a number");
+      
+      return;
     }
 
     if (pRating > 1 || pRating < 0) {
       Utils.reportUsageError("Rating constrained to values between 0 and 1");
+      
+      return;
     }
 
     this.#rating = pRating;
@@ -32,10 +54,10 @@ export class Player {
 
   setDeviance(pDeviance) {
     this.#deviance = pDeviance;
-    const half_deviance = this.#deviance * 0.5;
+    const halfDeviance = this.#deviance * 0.5;
 
-    this.#lowerBound = Utils.constrain(this.#rating - half_deviance, 0, 1);
-    this.#upperBound = Utils.constrain(this.#rating + half_deviance, 0, 1);
+    this.#lowerBound = Utils.constrain(this.#rating - halfDeviance, 0, 1);
+    this.#upperBound = Utils.constrain(this.#rating + halfDeviance, 0, 1);
   }
 
   getScore() {
@@ -51,5 +73,11 @@ export class Player {
     result /= n;
 
     return result;
+  }
+
+  draw(color, x, y) {
+    const gl = this.#gLib;
+    gl.drawRect(x, y, 12, 12, color);
+    gl.text(x + 15, y + 12, this.#name, "#aaa", "20px Arial");
   }
 }
