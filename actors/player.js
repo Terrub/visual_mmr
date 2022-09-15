@@ -31,8 +31,8 @@ export class Player {
   }
 
   setDeviance(pDeviance) {
-    const half_deviance = this.#deviance * 0.5;
     this.#deviance = pDeviance;
+    const half_deviance = this.#deviance * 0.5;
 
     this.#lowerBound = Utils.constrain(this.#rating - half_deviance, 0, 1);
     this.#upperBound = Utils.constrain(this.#rating + half_deviance, 0, 1);

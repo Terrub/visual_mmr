@@ -1,58 +1,45 @@
 import { Utils } from "../utils.js";
 
 function drawAxisX(instance) {
-  var width = instance.w;
-  var height = instance.h;
-  var x = instance.x;
-  var y = instance.y;
-  var color = instance.colors.axis;
-
+  const gl = instance.gLib;
   gl.drawRect(
-      x + 0, y + height,
-      width, 1,
-      color
+    instance.x + 0,
+    instance.y + instance.h,
+    instance.w,
+    1,
+    instance.colors.axis
   );
 }
 
 function drawBackground(instance) {
-  var width = instance.w;
-  var height = instance.h;
-  var x = instance.x;
-  var y = instance.y;
-  var color = instance.colors.background;
-
+  const gl = instance.gLib;
   gl.drawRect(
-      x, y,
-      width, height,
-      color
+    instance.x,
+    instance.y,
+    instance.w,
+    instance.h,
+    instance.colors.background
   );
 }
 
 function drawAxisY(instance) {
-  var width = instance.w;
-  var height = instance.h;
-  var x = instance.x;
-  var y = instance.y;
-  var color = instance.colors.axis;
-
-  var half_width = (width / 2);
-
+  const gl = instance.gLib;
   gl.drawRect(
-      x + half_width - 1, y + 0,
-      1, height,
-      color
+    instance.x + instance.w / 2 - 1,
+    instance.y + 0,
+    1,
+    instance.h,
+    instance.colors.axis
   );
 }
 
 function calcMeanFromData(data) {
-  var entry;
-  var sum = 0;
+  let sum = 0;
 
-  var i = 0;
-  var n = data.length;
+  const n = data.length;
 
-  for ( i; i < n; i += 1 ) {
-    entry = data[i];
+  for (let i = 0; i < n; i += 1) {
+    const entry = data[i];
     sum += entry;
   }
 
@@ -60,14 +47,12 @@ function calcMeanFromData(data) {
 }
 
 function calcValues(instance) {
-  var flr = Math.floor;
-  var data = instance.data;
-  // var mean = calcMeanFromData(data);
-  var x;
-  var w = instance.num_units;
-  var i = 0;
-  var n = data.length;
-  var values = instance.values;
+  const data = instance.data;
+  // const mean = calcMeanFromData(data);
+  const w = instance.num_units;
+  let i = 0;
+  const n = data.length;
+  const values = instance.values;
 
   // initiate all x locations in the graph with 0;
   for (i = 0; i < w; i += 1) {
@@ -75,58 +60,56 @@ function calcValues(instance) {
   }
 
   for (i = 0; i < n; i += 1) {
-    x = flr(data[i] * w);
+    const x = Math.floor(data[i] * w);
     values[x] += 1;
   }
 }
 
 function drawCurve(instance) {
-  var flr = Math.floor;
+  const gl = instance.gLib;
+  const unit_width = instance.w / instance.numUnits;
 
-  var width = instance.w;
-  var height = instance.h;
-  var x = instance.x;
-  var y = instance.y;
-
-  var color = instance.colors.curve;
-  var values = instance.values;
-  var n = instance.data.length;
-
-  var i = 0;
-
-  var num_units = instance.num_units;
-  var unit_width = width / num_units;
-  var val;
-
-  for (i; i < num_units; i += 1) {
-    val = flr(values[i] / n * height);
-    if (val > height) { val = height; }
-    if (val < 0) { val = 0; }
+  for (let i = 0; i < instance.numUnits; i += 1) {
+    let val = Math.floor(
+      (instance.values[i] / instance.data.length) * instance.h
+    );
+    if (val > instance.h) {
+      val = instance.h;
+    }
+    if (val < 0) {
+      val = 0;
+    }
     gl.drawRect(
-      x + (i * unit_width), y + height - val,
-      unit_width, val,
-      color
+      instance.x + i * unit_width,
+      instance.y + instance.h - val,
+      unit_width,
+      val,
+      instance.colors.curve
     );
   }
 }
 
 function getBackgroundColor() {
-    return "rgba(50,50,50,0.3)";
+  return "rgba(50,50,50,0.3)";
 }
 
 function getAxisColor() {
-    return "rgba(80,80,80,0.7)";
+  return "rgba(80,80,80,0.7)";
 }
 
 function getRandomColor() {
-    const hue = Utils.generateRandomNumber(0, 360);
-    const lum = Utils.generateRandomNumber(40,70);
+  const hue = Utils.generateRandomNumber(0, 360);
+  const lum = Utils.generateRandomNumber(40, 70);
 
-    return `hsla(${hue}%, 100%, ${lum}%, 0.8)`;
+  return `hsla(${hue}%, 100%, ${lum}%, 0.8)`;
 }
 
 export class CertaintyGraph {
   #gLib;
+
+  #x;
+
+  #y;
 
   #width;
 
@@ -139,10 +122,12 @@ export class CertaintyGraph {
   #values;
 
   #colors;
-    
+
   constructor(gLib, width, height, numUnits) {
     if (Utils.isUndefined(gLib)) {
-      Utils.reportUsageError("CertaintyGraph requires a graphics library to function.");
+      Utils.reportUsageError(
+        "CertaintyGraph requires a graphics library to function."
+      );
 
       return;
     }
@@ -150,23 +135,108 @@ export class CertaintyGraph {
     if (Utils.isDefined(width)) {
       this.#width = width;
     }
-    
+
     if (Utils.isDefined(height)) {
       this.#height = height;
     }
-    
+
     if (Utils.isDefined(numUnits)) {
-      this.setNumUnits(numUnits);
+      this.#numUnits = numUnits;
     }
 
     this.#gLib = gLib;
     this.#data = [];
     this.#values = [];
     this.#colors = {
-        curve: getRandomColor(),
-        axis: getAxisColor(),
-        background: getBackgroundColor()
+      curve: getRandomColor(),
+      axis: getAxisColor(),
+      background: getBackgroundColor(),
     };
+  }
+
+  get gLib() {
+    return this.#gLib;
+  }
+
+  get x() {
+    return this.#x;
+  }
+  set x(value) {
+    if (!Utils.isInteger(value)) {
+      Utils.reportUsageError("x should be an integer");
+      return;
+    }
+    this.#x = value;
+  }
+
+  get y() {
+    return this.#y;
+  }
+  set y(value) {
+    if (!Utils.isInteger(value)) {
+      Utils.reportUsageError("y should be an integer");
+      return;
+    }
+    this.#y = value;
+  }
+
+  get w() {
+    return this.#width;
+  }
+  set w(value) {
+    if (!Utils.isInteger(value)) {
+      Utils.reportUsageError("width should be an integer");
+      return;
+    }
+    this.#width = value;
+  }
+
+  get h() {
+    return this.#height;
+  }
+  set h(value) {
+    if (!Utils.isInteger(value)) {
+      Utils.reportUsageError("height should be an integer");
+      return;
+    }
+    this.#height = value;
+  }
+
+  get numUnits() {
+    return this.#numUnits;
+  }
+  set numUnits(value) {
+    if (!Utils.isInteger(value)) {
+      Utils.reportUsageError("numUnits should be an integer");
+      return;
+    }
+    this.#numUnits = value;
+  }
+
+  get data() {
+    return this.#data;
+  }
+
+  get values() {
+    return this.#values;
+  }
+  set values(values) {
+    if (!Utils.isArray(values)) {
+      Utils.reportUsageError("values should be an array");
+      return;
+    }
+    this.#values = values;
+  }
+
+  get colors() {
+    return this.#colors;
+  }
+  set colors(colors) {
+    if (!Utils.isObject(colors)) {
+      Utils.reportUsageError("colors should be a certaintyGraph color object");
+      return;
+    }
+    this.#colors = colors;
   }
 
   draw() {
@@ -174,10 +244,6 @@ export class CertaintyGraph {
     drawAxisY(this);
     calcValues(this);
     drawCurve(this);
-  }
-
-  setNumUnits(pNumUnits) {
-    this.#numUnits = pNumUnits;
   }
 
   addScore(pScore) {

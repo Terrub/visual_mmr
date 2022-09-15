@@ -7,55 +7,67 @@ export class RenderObject {
 
   #h;
 
-  #propertiesHaveChanged = false;
+  #propertiesHaveChanged = true;
 
-  #dimensionsHaveChanged = false;
+  #dimensionsHaveChanged = true;
 
   constructor() {}    
 
-  getX() {
+  get x() {
     return this.#x;
   }
 
-  setX(pX) {
+  set x(pX) {
     this.#x = pX;
 
     this.#dimensionsHaveChanged = true;
   }
   
-  getY() {
+  get y() {
     return this.#y;
   }
 
-  setY(pY) {
+  set y(pY) {
     this.#y = pY;
 
     this.#dimensionsHaveChanged = true;
   }
   
-  getw() {
+  get w() {
     return this.#w;
   }
 
-  setw(pW) {
+  set w(pW) {
     this.#w = pW;
 
     this.#dimensionsHaveChanged = true;
   }
   
-  geth() {
+  get h() {
     return this.#h;
   }
 
-  seth(pH) {
+  set h(pH) {
     this.#h = pH;
 
     this.#dimensionsHaveChanged = true;
   }
+
+  get dimensionsHaveChanged() {
+    return this.#dimensionsHaveChanged
+  }
+
+  get propertiesHaveChanged() {
+    return this.#propertiesHaveChanged
+  }
   
-  proto_update() {}
+  update() {
+    this.#propertiesHaveChanged = false;
+  }
 
-  proto_measure() {}
+  measure() {
+    this.#dimensionsHaveChanged = false;
+  }
 
-  proto_draw() {}
+  draw() {}
 }

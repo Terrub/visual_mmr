@@ -32,9 +32,6 @@ function createPlayerGraph(width, height, numUnits) {
     self.graph.draw(self);
   };
 
-  // coz we added children with display dimensions.
-  playerGraph.dimensionsHaveChanged = true;
-
   return playerGraph;
 }
 
@@ -88,7 +85,7 @@ function hookMousePositions() {
   document.onmousemove = mouse_hook;
 }
 
-function hookMouseClick() {
+function hookMouseClick(ml) {
   var click_hook = null;
   var oldMouseClick = document.onclick;
 
@@ -134,8 +131,6 @@ function addNewPlayerData(p_playerGraphs) {
   }
 }
 
-// --------
-
 function checkForNextRound() {
   var cur_time = Utils.getTime();
 
@@ -162,8 +157,6 @@ function draw() {
 
     if (ren_ob.properties_have_changed) {
       ren_ob.update(ren_ob);
-
-      ren_ob.properties_have_changed = false;
     }
   }
 
@@ -173,8 +166,6 @@ function draw() {
 
     if (ren_ob.dimensionsHaveChanged) {
       ren_ob.measure(ren_ob);
-
-      ren_ob.dimensionsHaveChanged = false;
     }
   }
 
@@ -221,7 +212,6 @@ let mouseY = 0.0;
 let renderObjects = [];
 let framerate = 60;
 
-
 let round = 0;
 let old_round = 0;
 let old_time = Utils.getTime();
@@ -251,7 +241,7 @@ const playerGraphs = createPlayerGraphs(5);
 renderObjects = renderObjects.concat(playerGraphs);
 
 hookMousePositions();
-hookMouseClick();
+hookMouseClick(mainloop);
 
-// debugger;
+debugger;
 mainloop.start();

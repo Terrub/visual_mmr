@@ -161,12 +161,16 @@ export class RenderableButton extends RenderObject {
       this.fontSizeUnit,
       this.fontFamily
     );
+
+    super.update()
   }
 
   measure() {
     // Measure is called if dimensions have changed.
     this.w = this.fontSize + this.glib.measureTextWidth(this.label, this.font);
     this.h = this.fontSize + this.internalPadding + this.borderSize;
+
+    super.measure()
   }
 
   draw() {

@@ -15,8 +15,8 @@ Specific question:
 
     The question then comes up: If I, as a director/constructor of the
     previously described link between actors using the connector, have to define
-    the connection, then from which context or scope am I operating?
-    Also, should I, can I or perhaps _must_ I be able to see all the expected
+    the connection. Because from which context or scope am I operating?
+    Also, should I; can I; or perhaps _must_ I be able to see all the expected
     behaviour (logic) and I/O (data) of both actors and the connector?
 
 
