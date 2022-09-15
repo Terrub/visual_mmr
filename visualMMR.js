@@ -2,8 +2,6 @@ import { CertaintyGraph } from "./actors/certaintyGraph.js";
 import { Display } from "./actors/display.js";
 import { createMainloop } from "./actors/mainloop.js";
 import { Player } from "./actors/player.js";
-import { RenderableButton } from "./actors/renderableButton.js";
-import { RenderObject } from "./actors/renderObject.js";
 import { Utils } from "./utils.js";
 
 function createCanvas(width, height) {
@@ -16,23 +14,13 @@ function createCanvas(width, height) {
 }
 
 function createPlayerGraph(width, height, numUnits) {
-  var player = new Player(Math.random(), Math.random());
-  var graph = new CertaintyGraph(display, width, height, numUnits);
-  var playerGraph = new RenderObject();
+  const player = new Player(Math.random(), Math.random());
+  const graph = new CertaintyGraph(display, width, height, numUnits);
 
-  playerGraph.player = player;
-  playerGraph.graph = graph;
-
-  playerGraph.measure = function (self) {
-    self.w = self.graph.w;
-    self.h = self.graph.h;
+  return {
+    player: player,
+    graph: graph,
   };
-
-  playerGraph.draw = function (self) {
-    self.graph.draw(self);
-  };
-
-  return playerGraph;
 }
 
 function createPlayerGraphs(p_num_players) {
@@ -46,98 +34,21 @@ function createPlayerGraphs(p_num_players) {
   return playerGraphs;
 }
 
-function pointInsideObject(obj, px, py) {
-  var x = obj.x;
-  var y = obj.y;
-  var w = obj.w;
-  var h = obj.h;
+function addNewPlayerData(pPlayerGraphs) {
+  for (const playerGraph of pPlayerGraphs) {
+    const newScore = playerGraph.player.getScore();
 
-  return !(px > x + w || px < x || py > y + h || py < y);
-}
-
-function hookMousePositions() {
-  var mouse_hook = null;
-  var oldMouseMove = document.onmousemove;
-
-  function newMouseMove(event) {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-  }
-
-  if (Utils.isFunction(oldMouseMove)) {
-    mouse_hook = function (event) {
-      var result;
-
-      result = oldMouseMove(event);
-
-      newMouseMove(event);
-
-      return result;
-    };
-
-    Utils.report("Outside mousemove hook was found. Using post-hook");
-  } else {
-    mouse_hook = newMouseMove;
-
-    Utils.report("No outside mousemove hook exists. Using direct hook");
-  }
-
-  document.onmousemove = mouse_hook;
-}
-
-function hookMouseClick(ml) {
-  var click_hook = null;
-  var oldMouseClick = document.onclick;
-
-  function newMouseClick(event) {
-    if (pointInsideObject(startButton, mouseX, mouseY)) {
-      ml.start();
-    } else if (pointInsideObject(stopButton, mouseX, mouseY)) {
-      ml.stop();
-    } else {
-      Utils.report("Random click");
-    }
-  }
-
-  if (Utils.isFunction(oldMouseClick)) {
-    click_hook = function (event) {
-      oldMouseClick(event);
-      newMouseClick(event);
-    };
-
-    Utils.report("Outside click function was found. Using post-hook");
-  } else {
-    click_hook = newMouseClick;
-
-    Utils.report("No outside click function exists. Using direct hook");
-  }
-
-  document.onclick = click_hook;
-}
-
-function addNewPlayerData(p_playerGraphs) {
-  var player_graph;
-  var new_score;
-
-  var i = 0;
-  var n = p_playerGraphs.length;
-
-  for (i; i < n; i += 1) {
-    player_graph = p_playerGraphs[i];
-
-    new_score = player_graph.player.getScore();
-
-    player_graph.graph.addScore(new_score);
+    playerGraph.graph.addScore(newScore);
   }
 }
 
 function checkForNextRound() {
-  var cur_time = Utils.getTime();
+  const curTime = Utils.getTime();
 
-  if (old_time + time_per_round < cur_time) {
+  if (oldTime + timePerRound < curTime) {
     round += 1;
 
-    old_time = cur_time;
+    oldTime = curTime;
   }
 }
 
@@ -145,9 +56,7 @@ function clear() {
   display.clear();
 }
 
-function draw() {
-  const n = renderObjects.length;
-
+function draw() { 
   let concurrent_x = 10;
   let concurrent_y = 10;
 
@@ -196,8 +105,8 @@ function draw() {
 function renderFrame() {
   checkForNextRound();
 
-  if (round > old_round) {
-    old_round = round;
+  if (round > oldRound) {
+    oldRound = round;
 
     addNewPlayerData(playerGraphs);
   }
@@ -206,16 +115,10 @@ function renderFrame() {
   draw();
 }
 
-let mouseX = 0.0;
-let mouseY = 0.0;
-
-let renderObjects = [];
-let framerate = 60;
-
 let round = 0;
-let old_round = 0;
-let old_time = Utils.getTime();
-let time_per_round = 1; // 1 millisecond
+let oldRound = 0;
+let oldTime = Utils.getTime();
+let timePerRound = 1; // 1 millisecond
 
 const canvas = createCanvas(window.innerWidth - 4, window.innerHeight - 4);
 const display = new Display(
@@ -231,13 +134,7 @@ document.body.appendChild(canvas);
 // framerate = RenderableFramerate.create(display);
 // renderObjects.push(framerate);
 
-const startButton = new RenderableButton(display, "START");
-renderObjects.push(startButton);
-
-const stopButton = new RenderableButton(display, "STOP");
-renderObjects.push(stopButton);
-
-const playerGraphs = createPlayerGraphs(5);
+const playerGraphs = createPlayerGraphs(1);
 renderObjects = renderObjects.concat(playerGraphs);
 
 hookMousePositions();
