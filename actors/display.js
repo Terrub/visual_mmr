@@ -27,6 +27,15 @@ export class Display {
     this.gLib.stroke();
   }
 
+  drawCurve(xS, yS, x0, y0, x1, y1, xE, yE, color, lineWidth = 1) {
+    this.gLib.lineWidth = lineWidth;
+    this.gLib.strokeStyle = color;
+    this.gLib.beginPath();
+    this.gLib.moveTo(xS, yS);
+    this.gLib.bezierCurveTo(x0, y0, x1, y1, xE, yE);
+    this.gLib.stroke();
+  }
+
   drawRect(x, y, x2, y2, color) {
     this.gLib.fillStyle = color;
     this.gLib.fillRect(x, y, x2, y2);

@@ -67,7 +67,9 @@ function createPlayerGraphs(pNumPlayers) {
 function createEstimationGraphs(playerGraphs) {
   const estimationGraphs = [];
   for (const playerGraph of playerGraphs) {
-    const estimationGraph = new EstimationGraph(playerGraph.player);
+    // const estimationGraph = new EstimationGraph(playerGraph.player);
+    const estimationGraph = new EstimationGraph(display, 200, 100);
+    estimationGraphs.push(estimationGraph);
   }
 
   return estimationGraphs;
@@ -106,6 +108,12 @@ function draw() {
     const y = 10 + (i * 20);
 
     playerGraph.player.draw(color, x, y);
+  }
+
+  for (const graph of estimationGraphs) {
+    graph.x = 300;
+    graph.y = 300;
+    graph.draw();
   }
 }
 
