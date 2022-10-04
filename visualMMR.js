@@ -36,29 +36,29 @@ function getRandomName() {
   return names[Utils.generateRandomNumber(names.length, 0)];
 }
 
-function createPlayerGraph(width, height, numUnits) {
-  const randomName = getRandomName();
-  const rating = Math.random();
-  const deviance = Math.random();
-
-  const player = new Player(display, randomName, rating, deviance);
-  const graph = new CertaintyGraph(display, width, height, numUnits);
-
-  return {
-    player: player,
-    graph: graph,
-  };
-}
-
 function createPlayerGraphs(pNumPlayers) {
-  const n = pNumPlayers;
-  const playerGraphs = [];
+  const names = [];
+  while(names.length < pNumPlayers) {
+    const randomName = getRandomName();
+    if (!names.includes(randomName)) {
+      names.push(randomName);
+    }
+  }
 
-  for (let i = 0; i < n; i += 1) {
-    const playerGraph = createPlayerGraph(1200, 800, 200);
-    playerGraph.graph.x = 10;
-    playerGraph.graph.y = 10;
-    playerGraphs.push(playerGraph);
+  const playerGraphs = []; 
+  for (const name of names) {
+    const rating = Math.random();
+    const deviance = Math.random();    
+    const player = new Player(display, name, rating, deviance);
+    const graph = new CertaintyGraph(display, 1200, 800, 200);
+    
+    graph.x = 10;
+    graph.y = 10;
+    
+    playerGraphs.push({
+      player: player,
+      graph: graph,
+    });
   }
 
   return playerGraphs;
@@ -105,16 +105,16 @@ function draw() {
     playerGraph.graph.draw();
     const color = playerGraph.graph.colors.curve;
     const x = 1210;
-    const y = 10 + (i * 20);
+    const y = 10 + i * 20;
 
     playerGraph.player.draw(color, x, y);
   }
 
-  for (const graph of estimationGraphs) {
-    graph.x = 300;
-    graph.y = 300;
-    graph.draw();
-  }
+  // for (const graph of estimationGraphs) {
+  //   graph.x = 300;
+  //   graph.y = 300;
+  //   graph.draw();
+  // }
 }
 
 function renderFrame() {
