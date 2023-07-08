@@ -97,16 +97,6 @@ function addNewPlayerData(pPlayerGraphs) {
   }
 }
 
-function checkForNextRound() {
-  const curTime = Utils.getTime();
-
-  if (oldTime + timePerRound < curTime) {
-    round += 1;
-
-    oldTime = curTime;
-  }
-}
-
 function clear() {
   canvasRenderer.clear();
 }
@@ -126,7 +116,13 @@ function draw() {
 }
 
 function renderFrame() {
-  checkForNextRound();
+  const curTime = Utils.getTime();
+
+  if (curTime > oldTime + timePerRound) {
+    round += 1;
+
+    oldTime = curTime;
+  }
 
   if (round > oldRound) {
     oldRound = round;
