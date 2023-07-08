@@ -184,4 +184,11 @@ export class Utils {
     // For now just report the error normally;
     Utils.reportError(error);
   }
+
+  static isInstanceOf(parent, child) {
+    return Object.prototype.isPrototypeOf.call(
+      parent.prototype,
+      child.prototype
+    );
+  }
 }
