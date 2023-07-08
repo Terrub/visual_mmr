@@ -11,56 +11,56 @@ export class RenderObject {
 
   #dimensionsHaveChanged = true;
 
-  constructor() {}    
+  constructor() {}
 
   get x() {
     return this.#x;
   }
 
-  set x(pX) {
-    this.#x = pX;
+  set x(value) {
+    this.#x = value;
 
     this.#dimensionsHaveChanged = true;
   }
-  
+
   get y() {
     return this.#y;
   }
 
-  set y(pY) {
-    this.#y = pY;
+  set y(value) {
+    this.#y = value;
 
     this.#dimensionsHaveChanged = true;
   }
-  
+
   get w() {
     return this.#w;
   }
 
-  set w(pW) {
-    this.#w = pW;
+  set w(value) {
+    this.#w = value;
 
     this.#dimensionsHaveChanged = true;
   }
-  
+
   get h() {
     return this.#h;
   }
 
-  set h(pH) {
-    this.#h = pH;
+  set h(value) {
+    this.#h = value;
 
     this.#dimensionsHaveChanged = true;
   }
 
   get dimensionsHaveChanged() {
-    return this.#dimensionsHaveChanged
+    return this.#dimensionsHaveChanged;
   }
 
   get propertiesHaveChanged() {
-    return this.#propertiesHaveChanged
+    return this.#propertiesHaveChanged;
   }
-  
+
   update() {
     this.#propertiesHaveChanged = false;
   }
