@@ -139,15 +139,26 @@ function renderFrame() {
   draw();
 }
 
+const timePerRound = 1; // milliseconds
+const maxRounds = 1000;
 let round = 0;
 let oldRound = 0;
 let oldTime = Utils.getTime();
-let timePerRound = 1; // milliseconds
 
+
+const menuBar = document.createElement("div");
+const testButton = document.createElement("a");
+testButton.href = "tests.html";
+testButton.text = "Tests";
+menuBar.append(testButton);
+document.body.appendChild(menuBar);
+
+const content = document.createElement("div");
 const canvas = document.createElement("canvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-document.body.appendChild(canvas);
+content.appendChild(canvas);
+document.body.appendChild(content);
 
 const canvasRenderer = new CanvasRenderer(canvas);
 
