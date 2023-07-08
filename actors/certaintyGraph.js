@@ -34,16 +34,24 @@ function drawAxisY(instance) {
 }
 
 function calcMeanFromData(data) {
-  let sum = 0;
-
-  const n = data.length;
-
-  for (let i = 0; i < n; i += 1) {
-    const entry = data[i];
-    sum += entry;
+  if (data.length < 1) {
+    return 0;
   }
 
+  const n = data.length;
+  const sum = data.reduce((prev, curr) => prev + curr);
+
   return sum / n;
+}
+
+function calcGaussianFromData() {
+  return [];
+}
+
+function calcCertaintyFromData(data) {
+  const certainty = 0;
+
+  return certainty;
 }
 
 function calcValues(instance) {
@@ -66,7 +74,7 @@ function calcValues(instance) {
   instance.values = values;
 }
 
-function drawCurve(instance) {
+function drawValues(instance) {
   const gl = instance.gLib;
   const unitWidth = instance.w / instance.numUnits;
 
@@ -85,9 +93,26 @@ function drawCurve(instance) {
       instance.y + instance.h - val,
       unitWidth,
       val,
-      instance.colors.curve
+      instance.colors.values
     );
   }
+}
+
+function drawMean(instance, mean, certainty) {
+  // Draw the current mean as a vertical line at x(mean) with height(certainty)
+  const gl = instance.gLib;
+  const x = instance.x + mean;
+  const y = instance.y;
+  const w = 1;
+  const h = certainty;
+  const c = instance.colors.mean;
+
+  gl.drawRect(x, y, w, h, c);
+}
+
+function drawEstimateCurve(instance) {
+  // Draw the gaussian curve corresponding with current certainty (height) and
+  // width of the bellcurve based on current deviation.
 }
 
 function getBackgroundColor() {
@@ -105,12 +130,24 @@ function getRandomColor() {
   return `hsla(${hue}, 100%, ${lum}%, 0.6)`;
 }
 
+function getMeanColor() {
+  // The colour for the curve's center line, the mean for the current data by estimate.
+  // Red-ish for now.
+  return "#c33";
+}
+
+function getCurveColor() {
+  // The colour for the gaussian/bell curve displaying current distribution estimate
+  // Off-white for now.
+  return "#ccc";
+}
+
 export class CertaintyGraph {
   #gLib;
 
-  #x;
+  #x = 0;
 
-  #y;
+  #y = 0;
 
   #width;
 
@@ -149,9 +186,11 @@ export class CertaintyGraph {
     this.#data = [];
     this.#values = [];
     this.#colors = {
-      curve: getRandomColor(),
+      values: getRandomColor(),
       axis: getAxisColor(),
       background: getBackgroundColor(),
+      mean: getMeanColor(),
+      curve: getCurveColor(),
     };
   }
 
@@ -241,10 +280,16 @@ export class CertaintyGraph {
   }
 
   draw() {
+    const mean = calcMeanFromData(this.#data);
+    const gaussian = calcGaussianFromData(this.#data);
+    const certainty = calcCertaintyFromData(this.#data);
+
     drawAxisX(this);
     drawAxisY(this);
     calcValues(this);
-    drawCurve(this);
+    drawValues(this);
+    drawMean(this, mean, certainty);
+    drawEstimateCurve(this, mean, gaussian);
   }
 
   addScore(pScore) {

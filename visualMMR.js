@@ -1,18 +1,8 @@
 import { CertaintyGraph } from "./actors/certaintyGraph.js";
-import { EstimationGraph } from "./actors/estimationGraph.js";
-import { Display } from "./actors/display.js";
 import { createMainloop } from "./actors/mainloop.js";
 import { Player } from "./actors/player.js";
+import { CanvasRenderer } from "./connectors/canvasRenderer.js";
 import { Utils } from "./utils.js";
-
-function createCanvas(width, height) {
-  const canvas = document.createElement("canvas");
-
-  canvas.width = width;
-  canvas.height = height;
-
-  return canvas;
-}
 
 function getRandomName() {
   const names = [
@@ -37,24 +27,34 @@ function getRandomName() {
 }
 
 function createPlayerGraphs(pNumPlayers) {
-  const names = [];
-  while(names.length < pNumPlayers) {
+  const generatedNames = [];
+  const maxAttempts = 10;
+
+  let numAttempts = 0;
+
+  while (generatedNames.length < pNumPlayers) {
     const randomName = getRandomName();
-    if (!names.includes(randomName)) {
-      names.push(randomName);
+    numAttempts += 1;
+
+    // Try again if this name is already taken and we have some attempts left
+    if (generatedNames.includes(randomName) && maxAttempts >= numAttempts) {
+      continue;
     }
+
+    generatedNames.push(randomName);
+    numAttempts = 0;
   }
 
-  const playerGraphs = []; 
-  for (const name of names) {
+  const playerGraphs = [];
+  for (const name of generatedNames) {
     const rating = Math.random();
-    const deviance = Math.random();    
-    const player = new Player(display, name, rating, deviance);
-    const graph = new CertaintyGraph(display, 1200, 800, 200);
-    
+    const deviance = Math.random();
+    const player = new Player(canvasRenderer, name, rating, deviance);
+    const graph = new CertaintyGraph(canvasRenderer, 600, 300, 200);
+
     graph.x = 10;
     graph.y = 10;
-    
+
     playerGraphs.push({
       player: player,
       graph: graph,
@@ -64,15 +64,29 @@ function createPlayerGraphs(pNumPlayers) {
   return playerGraphs;
 }
 
-function createEstimationGraphs(playerGraphs) {
-  const estimationGraphs = [];
-  for (const playerGraph of playerGraphs) {
-    // const estimationGraph = new EstimationGraph(playerGraph.player);
-    const estimationGraph = new EstimationGraph(display, 200, 100);
-    estimationGraphs.push(estimationGraph);
-  }
+function getControlPoints(startX, startY, meanX, meanY, endX, endY, scale) {
+  // Basic pythagorams:
+  // √((meanX - startX)^2 + (meanY - startY)^2)
+  const d01 = Math.sqrt(
+    Math.pow(meanX - startX, 2) + Math.pow(meanY - startY, 2)
+  );
+  // √((endX - meanX)^2 + (endY - meanY)^2)
+  const d12 = Math.sqrt(Math.pow(endX - meanX, 2) + Math.pow(endY - meanY, 2));
 
-  return estimationGraphs;
+  // --- ?
+  const fa = (scale * d01) / (d01 + d12); // scaling factor for triangle Ta
+  const fb = (scale * d12) / (d01 + d12); // ditto for Tb, simplifies to fb=t-fa
+
+  return {
+    controlPoint1: {
+      x: meanX - fa * (endX - startX),
+      y: meanY - fa * (endY - startY),
+    },
+    controlPoint2: {
+      x: meanX + fb * (endX - startX),
+      y: meanY + fb * (endY - startY),
+    },
+  };
 }
 
 function addNewPlayerData(pPlayerGraphs) {
@@ -94,20 +108,23 @@ function checkForNextRound() {
 }
 
 function clear() {
-  display.clear();
+  canvasRenderer.clear();
 }
 
 function draw() {
   const n = playerGraphs.length;
   for (let i = 0; i < n; i += 1) {
     const playerGraph = playerGraphs[i];
+    const graph = playerGraph.graph;
+    const player = playerGraph.player;
 
-    playerGraph.graph.draw();
-    const color = playerGraph.graph.colors.curve;
+    graph.draw();
+
+    const color = graph.colors.curve;
     const x = 1210;
     const y = 10 + i * 20;
 
-    playerGraph.player.draw(color, x, y);
+    player.draw(color, x, y);
   }
 
   // for (const graph of estimationGraphs) {
@@ -122,7 +139,7 @@ function renderFrame() {
 
   if (round > oldRound) {
     oldRound = round;
-
+    console.log(`Staring round #${round}`);
     addNewPlayerData(playerGraphs);
   }
 
@@ -133,21 +150,19 @@ function renderFrame() {
 let round = 0;
 let oldRound = 0;
 let oldTime = Utils.getTime();
-let timePerRound = 1; // 1 millisecond
+let timePerRound = 1; // milliseconds
 
-const canvas = createCanvas(window.innerWidth - 4, window.innerHeight - 4);
-const display = new Display(
-  canvas.getContext("2d"),
-  canvas.width,
-  canvas.height
-);
-
-const mainloop = createMainloop(renderFrame);
-
+const canvas = document.createElement("canvas");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 document.body.appendChild(canvas);
 
-const playerGraphs = createPlayerGraphs(2);
-const estimationGraphs = createEstimationGraphs(playerGraphs);
+const canvasRenderer = new CanvasRenderer(canvas);
+
+const mainloop = createMainloop(renderFrame);
+const playerGraphs = createPlayerGraphs(20);
 
 // debugger;
+window.mainloop = mainloop;
 mainloop.start();
+// mainloop.next();

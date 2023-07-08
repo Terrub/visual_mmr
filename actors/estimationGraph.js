@@ -56,6 +56,7 @@ function drawCurve(instance) {
     colorCurve
   );
 }
+
 export class EstimationGraph {
   gLib;
   x;

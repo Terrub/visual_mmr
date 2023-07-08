@@ -15,37 +15,45 @@ export function createMainloop(frameRender) {
     Utils.reportUsageError("Usage: createMainloop(frameRender: function");
   }
 
-  let animating = false;
+  let isAnimating = false;
   let isDebugging = false;
 
   function tic() {
-    if (animating !== true) {
-      return;
+    if (isAnimating === true) {
+      window.requestAnimationFrame(tic);
     }
 
     frameRender();
-
-    window.requestAnimationFrame(tic);
   }
 
   const protoMainloop = {
     start: function start() {
-      if (animating === true) {
+      if (isAnimating === true) {
         return;
       }
-      animating = true;
+
+      isAnimating = true;
+
       if (isDebugging) {
         Utils.report("Animation started");
       }
+
       tic();
     },
     stop: function stop() {
-      animating = false;
+      isAnimating = false;
       if (isDebugging) {
         Utils.report("Animation stopped");
       }
     },
     reset: function reset() {},
+    next: function next() {
+      if (isAnimating === true) {
+        return;
+      }
+
+      tic();
+    },
     setDebug: function setDebug(bVal) {
       isDebugging = bVal;
     },

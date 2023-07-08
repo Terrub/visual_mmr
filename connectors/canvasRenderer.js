@@ -1,16 +1,21 @@
 import { Utils } from "../utils.js";
 
-export class Display {
-  width;
+export class CanvasRenderer {
+  canvas;
 
-  height;
+  glib;
 
-  gLib;
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.gLib = canvas.getContext("2d");
+  }
 
-  constructor(gLib, width, height) {
-    this.width = width;
-    this.height = height;
-    this.gLib = gLib;
+  get width() {
+    return this.canvas.clientWidth;
+  }
+
+  get height() {
+    return this.canvas.clientHeight;
   }
 
   drawPixel(x, y, color) {

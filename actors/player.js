@@ -39,13 +39,13 @@ export class Player {
   setRating(pRating) {
     if (!Utils.isNumber(pRating)) {
       Utils.reportUsageError("setRating requires a number");
-      
+
       return;
     }
 
     if (pRating > 1 || pRating < 0) {
       Utils.reportUsageError("Rating constrained to values between 0 and 1");
-      
+
       return;
     }
 
