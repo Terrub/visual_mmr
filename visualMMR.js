@@ -124,9 +124,14 @@ function renderFrame() {
     oldTime = curTime;
   }
 
+  if (maxRounds < round) {
+    mainloop.stop();
+    return;
+  }
+
   if (round > oldRound) {
     oldRound = round;
-    console.log(`Staring round #${round}`);
+    console.log(`Starting round #${round}`);
     addNewPlayerData(playerGraphs);
   }
 
