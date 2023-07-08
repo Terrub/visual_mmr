@@ -1,6 +1,7 @@
 import { CertaintyGraph } from "./actors/certaintyGraph.js";
 import { createMainloop } from "./actors/mainloop.js";
 import { Player } from "./actors/player.js";
+import { PlayerGraph } from "./actors/playerGraph.js";
 import { CanvasRenderer } from "./connectors/canvasRenderer.js";
 import { Utils } from "./utils.js";
 
@@ -55,10 +56,9 @@ function createPlayerGraphs(pNumPlayers) {
     graph.x = 10;
     graph.y = 10;
 
-    playerGraphs.push({
-      player: player,
-      graph: graph,
-    });
+    const playerGraph = new PlayerGraph(player, graph);
+
+    playerGraphs.push(playerGraph);
   }
 
   return playerGraphs;
@@ -115,16 +115,7 @@ function draw() {
   const n = playerGraphs.length;
   for (let i = 0; i < n; i += 1) {
     const playerGraph = playerGraphs[i];
-    const graph = playerGraph.graph;
-    const player = playerGraph.player;
-
-    graph.draw();
-
-    const color = graph.colors.curve;
-    const x = 1210;
-    const y = 10 + i * 20;
-
-    player.draw(color, x, y);
+    playerGraph.draw(i);
   }
 
   // for (const graph of estimationGraphs) {
